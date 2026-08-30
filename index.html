@@ -1,0 +1,1929 @@
+<!--
+  Micron Artist - NomadNet ASCII art maker
+  Copyright (c) 2026 fr33n0w - https://github.com/fr33n0w/micron-art
+  Licensed under CC BY-NC-SA 4.0: https://creativecommons.org/licenses/by-nc-sa/4.0/
+  Share and modify freely, but not for sale and not under another name:
+  keep the credit and the link back to the original project.
+-->
+<title>Micron Artist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+:root {
+  /* IBM Plex Mono has no block or box-drawing glyphs, so a browser substitutes
+     them from another face, at another width, and block art drifts sideways
+     line by line. The art surfaces use faces that carry ░ ▒ ▓ █ and ─ │ ┌ ┐
+     themselves, at the same width as everything else. */
+  --art-font: Consolas, "Cascadia Mono", Menlo, "DejaVu Sans Mono",
+              "Liberation Mono", "Noto Sans Mono", "Courier New", monospace;
+  --ground:    #f2efe6;
+  --surface:   #ffffff;
+  --surface-2: #e9e5d9;
+  --line:      #d5cfc0;
+  --ink:       #1a1c22;
+  --ink-soft:  #565a66;
+  --ink-faint: #8b8f9c;
+  --accent:    #c2185b;
+  --bad:       #c0341d;
+  --shadow:    0 1px 2px rgba(26,28,34,.06), 0 8px 24px rgba(26,28,34,.06);
+  --radius:    6px;
+  --art-lh:    1.10;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground:    #12151c;
+    --surface:   #191d26;
+    --surface-2: #212632;
+    --line:      #2e3442;
+    --ink:       #e6e4dd;
+    --ink-soft:  #a2a7b4;
+    --ink-faint: #6b7180;
+    --accent:    #ff5fbd;
+    --bad:       #ff7a6b;
+    --shadow:    0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+  }
+}
+
+:root[data-theme="dark"] {
+  --ground:    #12151c;
+  --surface:   #191d26;
+  --surface-2: #212632;
+  --line:      #2e3442;
+  --ink:       #e6e4dd;
+  --ink-soft:  #a2a7b4;
+  --ink-faint: #6b7180;
+  --accent:    #ff5fbd;
+  --bad:       #ff7a6b;
+  --shadow:    0 1px 2px rgba(0,0,0,.4), 0 8px 24px rgba(0,0,0,.3);
+}
+
+* { box-sizing: border-box; }
+
+/* The browser's own [hidden] rule is display:none at the lowest precedence, so
+   any element here that sets display (flex, grid) silently ignores it. Several
+   panels below are toggled through the hidden attribute, so make it stick. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  /* room for the fixed footer, which wraps to two lines on narrow screens */
+  padding: 22px 20px 84px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* ── header ─────────────────────────────────────────────────── */
+
+header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+h1 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+h1 .mark { font-family: "IBM Plex Mono", monospace; color: var(--accent); }
+
+.sub {
+  margin: 2px 0 0;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+}
+
+.theme-btn {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 5px 12px;
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.theme-btn:hover { color: var(--ink); border-color: var(--ink-faint); }
+
+.head-btns { display: flex; gap: 8px; }
+
+/* ── info dialog ────────────────────────────────────────────── */
+
+#infoBox {
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(82vh, 760px);
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .35);
+  overflow: hidden;
+}
+#infoBox::backdrop { background: rgba(0, 0, 0, .45); }
+
+.info-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+}
+.info-head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.info-head .theme-btn { margin-left: auto; }
+
+.info-body {
+  padding: 4px 20px 22px;
+  overflow-y: auto;
+  max-height: calc(min(82vh, 760px) - 50px);
+}
+.info-body h3 {
+  margin: 20px 0 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--accent);
+}
+.info-body p, .info-body li {
+  margin: 0 0 9px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  max-width: 62ch;
+}
+.info-body ol { margin: 0 0 9px; padding-left: 20px; }
+.info-body b { color: var(--ink); font-weight: 600; }
+.info-body a { color: var(--accent); }
+.info-body code {
+  font-family: var(--art-font);
+  font-size: 12.5px;
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  color: var(--ink);
+}
+
+/* ── steps ──────────────────────────────────────────────────── */
+
+.step {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  /* no overflow:hidden here: it would clip the palette dropdown, which opens
+     downwards past the bottom of the card. The head rounds its own corners. */
+}
+
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-2);
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.step-head .n {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 100px;
+  width: 20px; height: 20px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.step-head h2 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.step-head .tiny { margin-left: auto; }
+
+.step-body { padding: 14px; }
+
+/* ── step 1: art + options ──────────────────────────────────── */
+
+/* The art box gets the full width and the options sit under it as a row of
+   columns. As a sidebar the options were always either taller or shorter than
+   the box, and one of the two left dead space. */
+.art-row {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#art {
+  width: 100%;
+  min-height: 320px;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 5px;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--art-font);
+  font-size: 12px;
+  line-height: 1.1;
+  white-space: pre;
+  overflow-x: auto;
+  resize: vertical;
+  tab-size: 4;
+}
+#art:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+
+/* Four panels of equal height. The blocks hold different numbers of controls,
+   so left to themselves they end ragged; stretching them and pushing the extra
+   space to the bottom of each keeps the row square. */
+.opts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(198px, 1fr));
+  gap: 12px;
+  align-items: stretch;
+}
+
+.opt-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 11px 12px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--ground);
+}
+.opt-block > :last-child { margin-bottom: auto; }
+
+.opt-title {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  color: var(--ink-faint);
+  padding-bottom: 7px;
+  border-bottom: 1px solid var(--line);
+}
+
+.opts-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* One size for every button in this row, whatever its variant. */
+.opts-actions .btn,
+.opts-actions .ghost-btn {
+  font-size: 12.5px;
+  line-height: 1.2;
+  padding: 8px 15px;
+  border-radius: 6px;
+  align-self: auto;
+}
+
+.act-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--line);
+  margin: 0 3px;
+}
+
+/* Palette picker: a dropdown, not a grid. A wall of swatch cards pushed
+   everything below it off the screen, and the list only keeps growing. */
+.pdrop { position: relative; }
+
+.pdrop-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--ground);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.pdrop-btn:hover { border-color: var(--ink-faint); }
+.pdrop-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.pdrop-btn[aria-expanded="true"] { border-color: var(--accent); }
+.pdrop-btn .caret { margin-left: auto; color: var(--ink-faint); font-size: 10px; }
+
+.pdrop-list {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 264px;
+  overflow-y: auto;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .28);
+}
+
+.pal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+.pal:hover { background: var(--surface-2); }
+.pal[aria-checked="true"] { border-color: var(--accent); background: var(--surface-2); }
+.pal:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+.pal .name {
+  font-size: 11px;
+  color: var(--ink-soft);
+  font-family: "IBM Plex Mono", monospace;
+}
+.pal[aria-checked="true"] .name { color: var(--ink); }
+
+.pal .strip, .pdrop-btn .strip {
+  display: flex;
+  flex: 0 0 66px;
+  height: 11px;
+  border-radius: 2px;
+  overflow: hidden;
+}
+.pal .strip span, .pdrop-btn .strip span { flex: 1; }
+
+.ghost-btn {
+  font: inherit;
+  font-size: 11.5px;
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--ground);
+  color: var(--ink-soft);
+  cursor: pointer;
+  align-self: flex-start;
+}
+.ghost-btn:hover { border-color: var(--accent); color: var(--ink); }
+.ghost-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.ghost-btn[disabled] { opacity: .4; cursor: default; }
+.ghost-btn[disabled]:hover { border-color: var(--line); color: var(--ink-soft); }
+.ghost-btn[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.mini-sel {
+  font: inherit;
+  font-size: 12px;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--ground);
+  color: var(--ink-soft);
+  cursor: pointer;
+  max-width: 150px;
+}
+.mini-sel:hover { border-color: var(--accent); color: var(--ink); }
+
+/* Four colour wells that stand in for a palette of your own. */
+.custom-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.custom-row input[type="color"] {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: var(--ground);
+  cursor: pointer;
+}
+.custom-row input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
+.custom-row input[type="color"]::-webkit-color-swatch { border: 0; border-radius: 2px; }
+
+/* segmented control */
+.seg {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--ground);
+}
+
+.seg button {
+  flex: 1;
+  font: inherit;
+  font-size: 11.5px;
+  padding: 5px 4px;
+  border: 0;
+  border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.seg button:last-child { border-right: 0; }
+.seg button:hover { background: var(--surface-2); color: var(--ink); }
+.seg button[aria-checked="true"] {
+  background: var(--accent);
+  color: #fff;
+}
+.seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.check:hover { color: var(--ink); }
+.check input { accent-color: var(--accent); }
+
+.inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.inline input[type="text"] {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12.5px;
+  width: 66px;
+  padding: 4px 7px;
+  background: var(--ground);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+}
+
+/* ── step 2: preview ────────────────────────────────────────── */
+
+.lh {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-faint);
+  font-weight: 400;
+}
+.lh input[type="range"] { width: 120px; accent-color: var(--accent); margin: 0; }
+.lh b {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 500;
+  color: var(--ink-soft);
+  min-width: 30px;
+  font-variant-numeric: tabular-nums;
+}
+
+#preview {
+  margin: 0;
+  padding: 16px;
+  background: var(--ground);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  font-family: var(--art-font);
+  font-size: 13px;
+  line-height: var(--art-lh);
+  overflow-x: auto;
+  min-height: 6em;
+  color: var(--ink-faint);
+}
+
+#preview .ln {
+  white-space: pre;
+  line-height: var(--art-lh);
+}
+
+/* ── step 3: output ─────────────────────────────────────────── */
+
+#out {
+  width: 100%;
+  min-height: 150px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--ground);
+  color: var(--ink-soft);
+  font-family: var(--art-font);
+  font-size: 11.5px;
+  line-height: 1.4;
+  white-space: pre;
+  overflow-x: auto;
+  resize: vertical;
+}
+
+.out-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.btn {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 15px;
+  border-radius: var(--radius);
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #fff;
+  cursor: pointer;
+}
+.btn:hover { filter: brightness(1.08); }
+.btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.btn.ghost {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line);
+}
+.btn.ghost:hover { border-color: var(--ink-faint); }
+
+.tiny { font-size: 11px; color: var(--ink-faint); }
+
+.recipe-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 9px;
+}
+.recipe-row input {
+  flex: 1 1 320px;
+  min-width: 0;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 12.5px;
+  padding: 8px 11px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--ground);
+  color: var(--ink);
+}
+.recipe-row input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.recipe-row .btn { font-size: 12.5px; padding: 8px 15px; }
+#recipeMsg.bad { color: var(--bad); }
+
+.note {
+  color: var(--ink-faint);
+  font-size: 12.5px;
+  margin: 0;
+}
+.note a { color: var(--accent); }
+
+/* ── footer ─────────────────────────────────────────────────── */
+
+.app-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  padding: 7px 20px;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.footer-text { font-size: 11.5px; color: var(--ink-faint); }
+
+.footer-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+.footer-stats img { display: block; opacity: .8; }
+.footer-stats img:hover { opacity: 1; }
+
+.stat-sep   { color: var(--line); }
+.stat-label { color: var(--ink-faint); }
+.stat-value {
+  color: var(--accent);
+  font-weight: 600;
+  font-family: var(--art-font);
+  font-variant-numeric: tabular-nums;
+}
+
+.linkish {
+  font: inherit;
+  font-size: 12.5px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.note code {
+  font-family: "IBM Plex Mono", monospace;
+  background: var(--surface-2);
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1><span class="mark">`</span>Micron Artist</h1>
+      <p class="sub">NomadNet ASCII art maker</p>
+    </div>
+    <div class="head-btns">
+      <button class="theme-btn" id="infoBtn" type="button">info</button>
+      <button class="theme-btn" id="themeBtn" type="button">theme</button>
+    </div>
+  </header>
+
+  <dialog id="infoBox">
+    <div class="info-head">
+      <h2>Micron Artist</h2>
+      <button class="theme-btn" id="infoClose" type="button">close</button>
+    </div>
+
+    <div class="info-body">
+      <h3>What it is for</h3>
+      <p>
+        Headers and lettering, the part of a NomadNet page that is painful to
+        colour by hand. Paste ASCII art, choose how it should be coloured, copy
+        the micron out. It does one thing: the art block.
+      </p>
+      <p>
+        Whole pages belong in
+        <a href="https://fr33n0w.github.io/micron-composer/" target="_blank" rel="noopener">Micron&nbsp;Composer</a>,
+        which is built for page structure: paste the header from here at the
+        top and write the rest of the page around it.
+      </p>
+
+      <h3>How to use it</h3>
+      <ol>
+        <li>Paste ASCII art into the first box, or press <b>Demo page</b> to
+            load the title card and experiment on that.</li>
+        <li>Pick a palette and a background, then try the effects. <b>Magic</b>
+            rolls the whole lot at once; <b>Shuffle</b> redraws the random
+            colours.</li>
+        <li>Copy the micron from the last box and paste it into your
+            <code>.mu</code> page.</li>
+      </ol>
+
+      <h3>Keeping a style you like</h3>
+      <p>
+        The <b>Recipe</b> box at the bottom holds every setting in one line.
+        Copy it when a look works, then paste it back later, with different
+        ASCII art in the box, to dress that art the same way. It carries the
+        random seed too, so even the random colours come back identical.
+      </p>
+
+      <h3>If the art looks misaligned</h3>
+      <p>
+        Both boxes are drawn by a browser, with browser fonts and browser
+        metrics. NomadNet draws the same text in a terminal. Shade blocks
+        (<code>░ ▒ ▓ █</code>) and box-drawing borders are the usual suspects:
+        if a font lacks them the browser borrows them from another face at
+        another width, and the art drifts sideways a little more with every one
+        of them on the line. Frames drawn with the Frame button show this most.
+      </p>
+      <p>
+        <b>The text itself is fine.</b> Do not fix it by deleting spaces, that
+        damages the real thing. Try another <b>font</b> from the picker next to
+        the preview first, and test the page in NomadNet. The same art that
+        looks broken in one editor renders perfectly in Micron Composer and in
+        a terminal.
+      </p>
+
+      <h3>Licence</h3>
+      <p>
+        <a href="https://github.com/fr33n0w/micron-art" target="_blank" rel="noopener">Micron&nbsp;Artist</a>
+        by fr33n0w, under
+        <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank" rel="noopener">CC&nbsp;BY-NC-SA&nbsp;4.0</a>.
+        Use it, change it, pass it on: not for sale, not under another name, and
+        keep the credit and the link back.
+      </p>
+
+      <h3>Micron notes</h3>
+      <p>
+        Colours are 12 bit, three hex digits: <code>`F0f0</code> sets the
+        foreground, <code>`B002</code> the background, <code>`f</code> and
+        <code>`b</code> close them. Backticks and backslashes in your art are
+        escaped automatically. Line spacing is a preview control only, micron
+        has no such tag: the reader's terminal decides it.
+      </p>
+    </div>
+  </dialog>
+
+  <section class="step">
+    <div class="step-head">
+      <span class="n">1</span>
+      <h2>Your ASCII art</h2>
+      <span class="tiny">from figlet, patorjk.com, an artpack, or drawn by hand</span>
+    </div>
+    <div class="step-body">
+      <div class="art-row">
+        <textarea id="art" spellcheck="false" aria-label="ascii art"
+          placeholder="Paste your ASCII art here."></textarea>
+
+        <div class="opts">
+          <div class="opt-block">
+            <div class="opt-title">Palette</div>
+            <div class="pdrop" id="palDrop">
+              <button class="pdrop-btn" type="button" aria-expanded="false" aria-haspopup="listbox"></button>
+              <div class="pdrop-list" role="radiogroup" aria-label="palette" hidden></div>
+            </div>
+            <div class="custom-row">
+              <span class="tiny">custom</span>
+              <input type="color" id="c0" value="#ff00ff" aria-label="custom colour 1">
+              <input type="color" id="c1" value="#8800ff" aria-label="custom colour 2">
+              <input type="color" id="c2" value="#0088ff" aria-label="custom colour 3">
+              <input type="color" id="c3" value="#00ffcc" aria-label="custom colour 4">
+            </div>
+          </div>
+
+          <div class="opt-block">
+            <div class="opt-title">Gradient</div>
+            <div class="seg" id="dirMode" role="radiogroup" aria-label="gradient direction">
+              <button type="button" data-dir="rows"  aria-checked="true">rows</button>
+              <button type="button" data-dir="cols"  aria-checked="false">cols</button>
+              <button type="button" data-dir="diag"  aria-checked="false">diag</button>
+              <button type="button" data-dir="shade" aria-checked="false">░▒▓█</button>
+            </div>
+            <span class="tiny" id="dirHint">top to bottom</span>
+          </div>
+
+          <div class="opt-block">
+            <div class="opt-title">Background</div>
+            <div class="seg" id="bgMode" role="radiogroup" aria-label="background mode">
+              <button type="button" data-bg="none"   aria-checked="true">none</button>
+              <button type="button" data-bg="solid"  aria-checked="false">solid</button>
+              <button type="button" data-bg="ramp"   aria-checked="false">ramp</button>
+              <button type="button" data-bg="invert" aria-checked="false">invert</button>
+            </div>
+            <label class="inline" id="bgSolidRow" hidden>colour
+              <input type="text" id="bg" placeholder="002" maxlength="3" spellcheck="false">
+              <span class="tiny">3 hex digits</span>
+            </label>
+            <div class="pdrop" id="bgPalDrop">
+              <button class="pdrop-btn" type="button" aria-expanded="false" aria-haspopup="listbox"></button>
+              <div class="pdrop-list" role="radiogroup" aria-label="background palette" hidden></div>
+            </div>
+            <label class="check"><input type="checkbox" id="halo"> only behind the glyphs</label>
+            <span class="tiny" id="bgHint">the ramp uses this palette</span>
+          </div>
+
+          <div class="opt-block">
+            <div class="opt-title">Effects</div>
+            <label class="check"><input type="checkbox" id="scanlines"> scanlines <span class="tiny">dim every other row</span></label>
+            <label class="check"><input type="checkbox" id="reverse"> reverse the ramp</label>
+            <label class="check"><input type="checkbox" id="randomChars"> random colour per character</label>
+            <label class="check"><input type="checkbox" id="grain"> grain <span class="tiny">roughen the ramp</span></label>
+            <label class="check"><input type="checkbox" id="bold"> bold the whole block</label>
+            <label class="check"><input type="checkbox" id="fade"> fade the top and bottom rows</label>
+            <label class="check"><input type="checkbox" id="centerArt"> centre on the page</label>
+          </div>
+        </div>
+
+        <div class="opts-actions">
+          <button class="btn" type="button" id="magic" title="roll palette, background and effects together">Magic</button>
+          <button class="ghost-btn" type="button" id="reroll" title="draw a new set of random colours">Shuffle</button>
+          <span class="act-sep"></span>
+          <button class="ghost-btn" type="button" id="mirror" title="flip left to right">Mirror</button>
+          <button class="ghost-btn" type="button" id="flip" title="flip top to bottom">Flip</button>
+          <button class="ghost-btn" type="button" id="frame" title="draw a box around the art">Frame</button>
+          <select id="frameStyle" class="mini-sel" aria-label="frame style"></select>
+          <button class="ghost-btn" type="button" id="shade" title="step every block up or down in density">Shade</button>
+          <button class="ghost-btn" type="button" id="trim" title="strip the common indent and trailing spaces">Trim</button>
+          <span class="act-sep"></span>
+          <button class="ghost-btn" type="button" id="undo" title="undo the last change to the art" disabled>Undo</button>
+          <span class="act-sep"></span>
+          <button class="ghost-btn" type="button" id="bwBtn" aria-pressed="false" title="drop every colour to grey">B/W</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head">
+      <span class="n">2</span>
+      <h2>How it looks</h2>
+      <select id="artFont" class="mini-sel" aria-label="preview font" title="the font used for the art boxes"></select>
+      <label class="lh">
+        line spacing
+        <input type="range" id="lineHeight" min="0.60" max="1.40" step="0.02" value="1.10">
+        <b id="lhVal">1.10</b>
+      </label>
+    </div>
+    <div class="step-body">
+      <pre id="preview" aria-live="polite"></pre>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head">
+      <span class="n">3</span>
+      <h2>Micron code</h2>
+      <span class="tiny" id="outSize">0 bytes</span>
+    </div>
+    <div class="step-body">
+      <textarea id="out" readonly spellcheck="false" aria-label="micron output"></textarea>
+      <div class="out-actions">
+        <button class="btn" type="button" id="copy">Copy micron</button>
+        <button class="btn ghost" type="button" id="download">Download .mu</button>
+        <button class="btn ghost" type="button" id="clear">Clear</button>
+        <button class="btn ghost" type="button" id="demo" title="load the title card and roll a look">Demo page</button>
+        <span class="tiny">paste it at the top of your page</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head">
+      <h2>Recipe</h2>
+      <span class="tiny">every setting above in one line, to save or to pass on</span>
+    </div>
+    <div class="step-body">
+      <div class="recipe-row">
+        <input type="text" id="recipe" spellcheck="false" autocomplete="off"
+               aria-label="recipe code" placeholder="MA1.acid.dark-void.ramp.002.diag.sr.k3f9x.110">
+        <button class="btn ghost" type="button" id="applyRecipe">Apply</button>
+        <button class="btn ghost" type="button" id="copyRecipe">Copy</button>
+      </div>
+      <p class="tiny" id="recipeMsg">palette, background, gradient, effects and the random seed. Paste one in and press Apply.</p>
+    </div>
+  </section>
+
+  <p class="note">
+    Both art boxes are drawn by a browser, not by a terminal. Shade blocks and
+    box-drawing borders can come from a substitute font at a different width, so
+    art, and frames especially, may look misaligned here while the text itself is
+    correct: it renders properly in NomadNet and in
+    <a href="https://fr33n0w.github.io/micron-composer/" target="_blank" rel="noopener">Micron&nbsp;Composer</a>.
+    Try another font from the picker rather than deleting spaces, and test the page
+    in your reader. Line spacing is a preview control only, micron has no such tag.
+    Build the rest of the page in Micron&nbsp;Composer: this tool makes the header.
+    <button class="linkish" type="button" id="infoBtn2">More</button>
+  </p>
+
+</div>
+
+<!--
+  Page loads, counted by hits.sh, which keys off the URL and hands back an SVG.
+  It only counts where the page is really served: the artifact viewer blocks
+  every external host, so there the image fails and the footer hides its stats.
+  Deliberately eager, not lazy: a lazy image below the fold might never load,
+  and so never count.
+-->
+<footer class="app-footer">
+  <div class="footer-inner">
+    <span class="footer-text">Micron Artist - made for the NomadNet community</span>
+    <div class="footer-stats" id="footerStats">
+      <img id="hits" alt="page loads"
+           src="https://hits.sh/fr33n0w.github.io/micron-art.svg?style=flat-square&label=page%20loads&color=c2185b&labelColor=6b7180"
+           width="90" height="20" loading="eager" referrerpolicy="no-referrer">
+      <span class="stat-sep">|</span>
+      <span class="stat-label">since</span>
+      <span class="stat-value">2026-08-30</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+"use strict";
+
+// Micron colours are 12 bit: three hex digits, one per channel. That coarse
+// grid is why these ramps look like a 90s demo — there is no room for polite
+// in-between shades, so the jumps are the point.
+const PALETTES = {
+  acid:      ["f0f","d0f","a2f","80f","63f","45f","27f","0af"],
+  neon:      ["f0c","e0f","b3f","76f","3af","0cf","0fe","8ff"],
+  toxic:     ["0f0","5f0","af0","df0","fd0","fa4","f6a","f0c"],
+  grape:     ["60f","83f","a5f","c7f","e9c","fd6","fe2","ff0"],
+  vice:      ["f09","f3c","d5f","a7f","69f","3cf","0fe","0ff"],
+  cyber:     ["0ff","0cf","3af","78f","a6f","d3f","f0f","f0a"],
+  sunset:    ["ff0","fd0","fa0","f70","f45","f2a","d0d","90f"],
+  alien:     ["0f8","0fb","0fe","0df","0af","3cf","6ef","aff"],
+  punk:      ["f0a","f0f","d2f","f60","fa0","fd0","ff0","ffa"],
+  fire:      ["d00","f30","f60","f90","fc0","fe4","ff8","ffd"],
+  matrix:    ["030","060","0a0","0d2","0f5","5f8","afc","efe"],
+  ice:       ["06a","09c","0bd","3ce","6df","9ef","cff","fff"],
+  amber:     ["720","940","b60","d80","fa0","fc4","fe8","ffd"],
+  rave:      ["f00","f80","ff0","0f0","0ff","08f","60f","f0f"],
+  bubblegum: ["f6c","f9d","fbe","dff","9fe","6ef","3df","0cf"],
+  hazard:    ["ff0","fe0","fc0","fa0","f80","f60","f40","f20"],
+  mono:      ["444","666","888","aaa","ccc","ddd","eee","fff"],
+  lava:      ["300","700","b00","e30","f70","fa0","fd4","ffb"],
+  emerald:   ["041","063","085","0a6","0c8","4da","8ec","cfe"],
+  sapphire:  ["014","026","038","14b","36d","58e","8af","cdf"],
+  gold:      ["520","841","b62","d83","fa4","fc6","fe9","ffd"],
+  aurora:    ["0f6","0fa","2ec","6cf","9af","b8f","d6f","f4e"],
+  candy:     ["f4a","f7c","fae","cef","9df","6cf","4bf","2af"],
+  royal:     ["203","417","62b","84e","a6c","c89","eab","fd6"],
+  copper:    ["410","721","a42","c63","e85","fa7","fc9","fdb"],
+  lime:      ["131","352","573","794","9b5","bd6","dea","eff"],
+  steel:     ["234","456","678","89a","abc","cde","def","fff"],
+  sunrise:   ["407","70a","a0a","d27","f45","f73","fa2","fd0"],
+  blood:     ["200","500","800","a11","c22","e44","f77","fbb"],
+  glacier:   ["124","247","36a","59c","7be","9df","bef","eff"],
+  venom:     ["030","162","294","3c6","6e8","9fa","cfd","eff"],
+  dusk:      ["112","324","536","748","96a","b8c","dad","fce"],
+  ultra:     ["00f","40f","80f","b0f","f0f","f0b","f08","f04"]
+};
+
+// Backgrounds get their own set as well. These are deliberately near-black:
+// a background is there to sit behind the art, not to compete with it, and
+// the bright palettes above only work as a background once dimmed.
+const DARKS = {
+  "dark void":   ["000","101","202","213","324","435","546","657"],
+  "dark coal":   ["000","111","111","222","222","333","333","444"],
+  "dark ember":  ["100","200","300","310","410","520","530","640"],
+  "dark swamp":  ["010","020","031","041","152","162","273","283"],
+  "dark ocean":  ["001","012","023","034","045","056","167","178"],
+  "dark plum":   ["100","201","302","403","504","605","716","827"],
+  "dark forest": ["001","011","021","032","142","153","264","375"],
+  "dark rust":   ["100","210","320","430","541","651","762","873"],
+  "dark abyss":  ["000","001","002","003","013","024","135","146"],
+  "dark wine":   ["100","201","301","402","503","604","715","826"],
+  "dark moss":   ["010","021","032","042","153","163","274","385"],
+  "dark navy":   ["001","002","103","114","215","226","337","448"],
+  "dark char":   ["000","000","111","111","222","222","333","333"],
+  "dark bronze": ["110","220","330","431","541","652","763","874"],
+  "dark slate":  ["011","112","122","223","233","334","344","455"],
+  "dark cave":   ["000","100","110","210","211","321","322","432"]
+};
+
+// Four stops of your own, interpolated into the same eight-step ramp the built
+// in palettes use, so every effect works on it unchanged.
+let customStops = ["f0f", "80f", "08f", "0fc"];
+
+function rampFromStops(stops) {
+  const val = (c, i) => parseInt(c[i], 16);
+  const out = [];
+  for (let k = 0; k < 8; k++) {
+    const t = k / 7 * (stops.length - 1);
+    const a = stops[Math.floor(t)], b = stops[Math.min(Math.ceil(t), stops.length - 1)];
+    const f = t - Math.floor(t);
+    out.push([0, 1, 2].map(i =>
+      Math.round(val(a, i) + (val(b, i) - val(a, i)) * f).toString(16)).join(""));
+  }
+  return out;
+}
+
+PALETTES.custom = rampFromStops(customStops);
+
+// The background picker offers the dark set first, then the bright ones.
+const BG_PALETTES = Object.assign({}, DARKS, PALETTES);
+
+// Box characters for the Frame button: corners, then the horizontal and
+// vertical runs.
+const FRAMES = {
+  single:  ["┌", "─", "┐", "│", "│", "└", "─", "┘"],
+  double:  ["╔", "═", "╗", "║", "║", "╚", "═", "╝"],
+  round:   ["╭", "─", "╮", "│", "│", "╰", "─", "╯"],
+  heavy:   ["┏", "━", "┓", "┃", "┃", "┗", "━", "┛"],
+  ascii:   ["+", "-", "+", "|", "|", "+", "-", "+"],
+  plus:    ["*", "*", "*", "*", "*", "*", "*", "*"],
+  hash:    ["#", "#", "#", "#", "#", "#", "#", "#"],
+  block:   ["█", "▀", "█", "█", "█", "█", "▄", "█"],
+  shade:   ["▓", "▒", "▓", "▒", "▒", "▓", "▒", "▓"],
+  dots:    ["·", "·", "·", "·", "·", "·", "·", "·"],
+  dashes:  ["+", "-", "+", ":", ":", "+", "-", "+"],
+  arrows:  ["◤", "▔", "◥", "▏", "▕", "◣", "▁", "◢"]
+};
+
+const SHADES = " ░▒▓█";
+
+const bwBtn   = document.getElementById("bwBtn");
+const artBox  = document.getElementById("art");
+const preview = document.getElementById("preview");
+const out     = document.getElementById("out");
+const outSize = document.getElementById("outSize");
+
+let currentPal   = "acid";
+let currentBgPal = "dark void";
+let bgMode       = "none";
+let dirMode      = "rows";
+let seed         = Math.floor(Math.random() * 1e9);
+
+function hex3(t) {
+  if (!/^[0-9a-fA-F]{3}$/.test(t)) return null;
+  const r = parseInt(t[0], 16) * 17, g = parseInt(t[1], 16) * 17, b = parseInt(t[2], 16) * 17;
+  return `rgb(${r},${g},${b})`;
+}
+
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// ── colouring ─────────────────────────────────────────────────
+
+// Halve every channel: used by the scanline effect, which dims alternate rows
+// the way an old CRT did.
+function dim(c) {
+  return c.split("").map(d =>
+    Math.max(0, Math.floor(parseInt(d, 16) / 2)).toString(16)).join("");
+}
+
+// Perceived brightness, so black and white keeps the gradient readable instead
+// of flattening yellow and blue to the same grey.
+function grey(c) {
+  const r = parseInt(c[0], 16), g = parseInt(c[1], 16), b = parseInt(c[2], 16);
+  const l = Math.round(0.299 * r + 0.587 * g + 0.114 * b).toString(16);
+  return l + l + l;
+}
+
+// Deterministic per-cell noise. A plain Math.random() would reshuffle the whole
+// picture on every keystroke, since build() re-renders from scratch; this way
+// the colours only change when the seed does, i.e. on Shuffle or Magic.
+function noise(row, col, seed) {
+  let h = (row * 73856093) ^ (col * 19349663) ^ (seed * 83492791);
+  h = Math.imul(h ^ (h >>> 15), 2246822519);
+  h = Math.imul(h ^ (h >>> 13), 3266489917);
+  return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
+}
+
+function colorize(text, o) {
+  let cols = PALETTES[o.pal];
+  if (o.reverse) cols = cols.slice().reverse();
+  const bgCols  = BG_PALETTES[o.bgPal] || cols;
+  const bgIsDark = !!DARKS[o.bgPal];
+
+  let lines = text.replace(/\r/g, "").split("\n");
+  while (lines.length && !lines[0].trim()) lines.shift();
+  while (lines.length && !lines[lines.length - 1].trim()) lines.pop();
+  if (!lines.length) return "";
+
+  const width = Math.max(...lines.map(l => l.length));
+  lines = lines.map(l => l.padEnd(width, " "));
+
+  return lines.map((line, row) => {
+    let s = "";
+    if (o.center) s += "`c";
+    if (o.bold) s += "`!";
+
+    let curF = null, curB = null;
+
+    for (let col = 0; col < line.length; col++) {
+      const ch = line[col];
+
+      // where this character sits along the ramp
+      const px = col / Math.max(width - 1, 1);
+      const py = row / Math.max(lines.length - 1, 1);
+      let pos;
+      if (o.dir === "shade" && SHADES.indexOf(ch) > -1) {
+        pos = SHADES.indexOf(ch) / (SHADES.length - 1);
+      } else if (o.dir === "cols") {
+        pos = px;
+      } else if (o.dir === "diag") {
+        pos = (px + py) / 2;
+      } else {
+        pos = py;
+      }
+
+      let idx = Math.min(Math.floor(pos * cols.length), cols.length - 1);
+      if (o.random) {
+        idx = Math.floor(noise(row, col, o.seed || 1) * cols.length);
+      } else if (o.grain) {
+        // Grain keeps the gradient but roughens it: one step either way, so the
+        // shape still reads while the surface stops looking machine-smooth.
+        idx += Math.floor(noise(row, col, (o.seed || 1) + 7) * 3) - 1;
+        idx = Math.min(Math.max(idx, 0), cols.length - 1);
+      }
+      const ramp = cols[idx];
+
+      let fg = ramp;
+      let bg = null;
+
+      if (o.bgMode === "solid" && o.bgSolid) {
+        bg = o.bgSolid;
+      } else if (o.bgMode === "ramp") {
+        // A full-brightness background swallows the glyphs, so a bright palette
+        // is dimmed on the way in. The dark set is already dark: dimming it
+        // again would flatten it to black.
+        const c = bgCols[Math.min(idx, bgCols.length - 1)];
+        bg = bgIsDark ? c : dim(c);
+      } else if (o.bgMode === "invert") {
+        // the ramp paints the background, the glyph goes dark on top of it
+        bg = ramp;
+        fg = "000";
+      }
+
+      // A halo backs the glyphs only, leaving the gaps open, so the art keeps
+      // its shape instead of sitting in a solid rectangle.
+      if (o.halo && ch === " ") bg = null;
+
+      // scanlines darken the odd rows: with a background there is something to
+      // dim, without one the text itself is dimmed instead.
+      if (o.scanlines && row % 2 === 1) {
+        if (bg) bg = dim(bg);
+        else    fg = dim(fg);
+      }
+
+      // Fade sinks the outermost rows towards the dark, so the block reads as
+      // lit from the middle rather than cut off at the edges.
+      if (o.fade && lines.length >= 5) {
+        const edge = Math.min(row, lines.length - 1 - row);
+        for (let k = 0; k < 2 - Math.min(edge, 2); k++) {
+          fg = dim(fg);
+          if (bg) bg = dim(bg);
+        }
+      }
+
+      if (o.bw) { fg = grey(fg); if (bg) bg = grey(bg); }
+
+      if (fg !== curF) { s += "`F" + fg; curF = fg; }
+      if (bg !== curB) { s += bg ? "`B" + bg : "`b"; curB = bg; }
+
+      // Both must be escaped. A lone backslash arms micron's escape and keeps
+      // it armed until the next backtick, which then gets eaten: the colour tag
+      // would show up as literal text instead of colouring the line.
+      if (ch === "`")       s += "\\`";
+      else if (ch === "\\") s += "\\\\";
+      else                  s += ch;
+    }
+
+    s += "`f";
+    if (curB) s += "`b";
+    if (o.bold) s += "`!";
+    return s;
+  }).join("\n");
+}
+
+// ── preview renderer ──────────────────────────────────────────
+function render(text) {
+  return text.split("\n").map(raw => {
+    let align = null;
+    while (/^`[clra]/.test(raw)) { align = raw[1]; raw = raw.slice(2); }
+
+    let html = "", fg = null, bg = null, bold = false, open = false, dirty = false, i = 0;
+
+    // One span per run of identical colour state. `F and `B are not nested
+    // tags in micron: they set the current colour until closed. A stack of
+    // spans mismatches as soon as foreground and background alternate, which
+    // is exactly what the background modes produce. The span is opened lazily,
+    // right before text is written, so a `F immediately followed by a `B emits
+    // one span instead of an empty one plus a real one.
+    function put(t) {
+      if (dirty) {
+        if (open) { html += "</span>"; open = false; }
+        if (fg || bg || bold) {
+          html += `<span style="${fg ? "color:" + fg + ";" : ""}` +
+                  `${bg ? "background:" + bg + ";" : ""}` +
+                  `${bold ? "font-weight:700;" : ""}">`;
+          open = true;
+        }
+        dirty = false;
+      }
+      html += t;
+    }
+
+    while (i < raw.length) {
+      const ch = raw[i];
+
+      if (ch === "\\" && (raw[i + 1] === "`" || raw[i + 1] === "\\")) {
+        put(esc(raw[i + 1])); i += 2; continue;
+      }
+
+      if (ch === "`") {
+        const n = raw[i + 1];
+        if ((n === "F" || n === "B") && hex3(raw.substr(i + 2, 3))) {
+          if (n === "F") fg = hex3(raw.substr(i + 2, 3));
+          else           bg = hex3(raw.substr(i + 2, 3));
+          dirty = true; i += 5; continue;
+        }
+        if (n === "f") { fg = null; dirty = true; i += 2; continue; }
+        if (n === "b") { bg = null; dirty = true; i += 2; continue; }
+        if (n === "!") { bold = !bold; dirty = true; i += 2; continue; }
+        fg = null; bg = null; bold = false; dirty = true; i += 1; continue;
+      }
+
+      put(esc(ch));
+      i++;
+    }
+
+    if (open) html += "</span>";
+
+    const style = align === "c" ? ' style="text-align:center"'
+                : align === "r" ? ' style="text-align:right"' : "";
+    return `<div class="ln"${style}>${html || "&nbsp;"}</div>`;
+  }).join("");
+}
+
+// ── update ────────────────────────────────────────────────────
+function build() {
+  const art = artBox.value;
+  if (!art.trim()) {
+    preview.innerHTML = '<div class="ln">nothing pasted yet</div>';
+    out.value = "";
+    outSize.textContent = "0 bytes";
+    syncRecipe();
+    return;
+  }
+
+  const solid = document.getElementById("bg").value.trim();
+  const block = colorize(art, {
+    pal:       currentPal,
+    bgPal:     currentBgPal,
+    bgMode:    bgMode,
+    bgSolid:   /^[0-9a-fA-F]{3}$/.test(solid) ? solid.toLowerCase() : "",
+    center:    document.getElementById("centerArt").checked,
+    dir:       dirMode,
+    scanlines: document.getElementById("scanlines").checked,
+    reverse:   document.getElementById("reverse").checked,
+    random:    document.getElementById("randomChars").checked,
+    grain:     document.getElementById("grain").checked,
+    bold:      document.getElementById("bold").checked,
+    fade:      document.getElementById("fade").checked,
+    halo:      document.getElementById("halo").checked,
+    bw:        bwBtn.getAttribute("aria-pressed") === "true",
+    seed:      seed
+  });
+
+  preview.innerHTML = render(block);
+  out.value = block;
+  outSize.textContent = new TextEncoder().encode(block).length + " bytes";
+
+  try { localStorage.setItem("micronart-art", art); } catch (e) {}
+  syncRecipe();
+}
+
+// ── palettes ──────────────────────────────────────────────────
+function stripHtml(set, name) {
+  return set[name].map(c => `<span style="background:${hex3(c)}"></span>`).join("");
+}
+
+// Returns a select(name) function so the caller can restore a saved choice.
+function makePalPicker(root, set, selected, onPick) {
+  const btn  = root.querySelector(".pdrop-btn");
+  const list = root.querySelector(".pdrop-list");
+
+  function paint(name) {
+    btn.innerHTML = `<span class="strip">${stripHtml(set, name)}</span>` +
+                    `<span class="name">${name}</span><span class="caret">&#9662;</span>`;
+    list.querySelectorAll(".pal").forEach(p =>
+      p.setAttribute("aria-checked", p.dataset.pal === name ? "true" : "false"));
+  }
+
+  function open(state) {
+    list.hidden = !state;
+    btn.setAttribute("aria-expanded", state ? "true" : "false");
+  }
+
+  Object.keys(set).forEach(name => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "pal";
+    b.setAttribute("role", "radio");
+    b.dataset.pal = name;
+    b.innerHTML = `<span class="strip">${stripHtml(set, name)}</span><span class="name">${name}</span>`;
+    b.addEventListener("click", () => {
+      paint(name);
+      open(false);
+      onPick(name);
+      build();
+    });
+    list.appendChild(b);
+  });
+
+  btn.addEventListener("click", () => open(list.hidden));
+  root.addEventListener("keydown", e => { if (e.key === "Escape") { open(false); btn.focus(); } });
+  // clicking anywhere else closes it
+  document.addEventListener("click", e => { if (!root.contains(e.target)) open(false); });
+
+  // The custom palette changes under our feet, so its swatch has to be redrawn.
+  paint.refresh = () => {
+    list.querySelectorAll(".pal").forEach(b => {
+      b.querySelector(".strip").innerHTML = stripHtml(set, b.dataset.pal);
+    });
+  };
+
+  paint(selected);
+  return paint;
+}
+
+const setPal   = makePalPicker(document.getElementById("palDrop"), PALETTES, currentPal, name => {
+  currentPal = name;
+  try { localStorage.setItem("micronart-pal", name); } catch (e) {}
+});
+
+const bgPalDrop = document.getElementById("bgPalDrop");
+const setBgPal  = makePalPicker(bgPalDrop, BG_PALETTES, currentBgPal, name => {
+  currentBgPal = name;
+  try { localStorage.setItem("micronart-bgpal", name); } catch (e) {}
+  // Picking a background palette means you want a background: with none set,
+  // the choice would otherwise change nothing on screen.
+  if (bgMode === "none") applyBgMode("ramp");
+});
+
+// ── custom palette ────────────────────────────────────────────
+const wells = ["c0", "c1", "c2", "c3"].map(id => document.getElementById(id));
+
+// The colour wells are 24 bit, micron is 12: take the high nibble of each
+// channel, which is exactly the round trip a #rrggbb makes to `Frgb.
+const to3 = hex6 => hex6.slice(1).match(/../g).map(p => p[0]).join("").toLowerCase();
+const to6 = c3 => "#" + c3.split("").map(d => d + d).join("");
+
+function refreshCustom(select) {
+  customStops = wells.map(w => to3(w.value));
+  PALETTES.custom = rampFromStops(customStops);
+  BG_PALETTES.custom = PALETTES.custom;
+  try { localStorage.setItem("micronart-stops", customStops.join("-")); } catch (e) {}
+  setPal.refresh();
+  setBgPal.refresh();
+  if (select) currentPal = "custom";
+  setPal(currentPal);
+  setBgPal(currentBgPal);
+}
+
+wells.forEach(w => {
+  w.addEventListener("input", () => { refreshCustom(true); build(); });
+});
+
+// ── background mode ───────────────────────────────────────────
+const bgSeg      = document.getElementById("bgMode");
+const bgSolidRow = document.getElementById("bgSolidRow");
+const bgHint     = document.getElementById("bgHint");
+
+const BG_HINT = {
+  none:   "pick a palette here to switch the ramp on",
+  solid:  "one flat colour behind the whole block",
+  ramp:   "the ramp uses this palette",
+  invert: "the art palette paints the background"
+};
+
+function applyBgMode(mode) {
+  bgMode = mode;
+  bgSeg.querySelectorAll("button").forEach(b =>
+    b.setAttribute("aria-checked", b.dataset.bg === mode ? "true" : "false"));
+  // The palette stays on screen in every mode so it can be browsed; only the
+  // solid colour field, which belongs to one mode alone, comes and goes.
+  bgSolidRow.hidden = mode !== "solid";
+  bgHint.textContent = BG_HINT[mode];
+  try { localStorage.setItem("micronart-bgmode", mode); } catch (e) {}
+}
+
+bgSeg.querySelectorAll("button").forEach(b => {
+  b.addEventListener("click", () => { applyBgMode(b.dataset.bg); build(); });
+});
+
+// ── gradient direction ────────────────────────────────────────
+const dirSeg  = document.getElementById("dirMode");
+const dirHint = document.getElementById("dirHint");
+
+const DIR_HINT = {
+  rows:  "top to bottom",
+  cols:  "left to right",
+  diag:  "corner to corner",
+  shade: "by character density, on ░ ▒ ▓ █"
+};
+
+function applyDirMode(mode) {
+  dirMode = mode;
+  dirSeg.querySelectorAll("button").forEach(b =>
+    b.setAttribute("aria-checked", b.dataset.dir === mode ? "true" : "false"));
+  dirHint.textContent = DIR_HINT[mode];
+  try { localStorage.setItem("micronart-dir", mode); } catch (e) {}
+}
+
+dirSeg.querySelectorAll("button").forEach(b => {
+  b.addEventListener("click", () => { applyDirMode(b.dataset.dir); build(); });
+});
+
+// ── controls ──────────────────────────────────────────────────
+artBox.addEventListener("input", build);
+["bg", "centerArt", "scanlines", "reverse", "randomChars",
+ "grain", "bold", "fade", "halo"].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener("input", build);
+  el.addEventListener("change", build);
+});
+
+bwBtn.addEventListener("click", () => {
+  bwBtn.setAttribute("aria-pressed",
+    bwBtn.getAttribute("aria-pressed") === "true" ? "false" : "true");
+  build();
+});
+
+// ── shuffle and magic ─────────────────────────────────────────
+const randomChars = document.getElementById("randomChars");
+
+// Shuffle always does something: with random colours off it turns them on,
+// otherwise it just draws a new set. A button that sits there greyed out is
+// less useful than one that explains itself by working.
+document.getElementById("reroll").addEventListener("click", () => {
+  if (!randomChars.checked) randomChars.checked = true;
+  seed = Math.floor(Math.random() * 1e9);
+  build();
+});
+
+const pick   = arr => arr[Math.floor(Math.random() * arr.length)];
+const chance = p => Math.random() < p;
+
+function roll() {
+  const on = (id, v) => { document.getElementById(id).checked = v; };
+
+  // One roll in six invents a palette instead of choosing one, so Magic is not
+  // limited to the shipped list.
+  if (chance(0.17)) {
+    wells.forEach(w => {
+      w.value = "#" + Array.from({ length: 3 },
+        () => { const d = Math.floor(Math.random() * 16).toString(16); return d + d; }).join("");
+    });
+    refreshCustom(true);
+  } else {
+    currentPal = pick(Object.keys(PALETTES));
+    setPal(currentPal);
+  }
+
+  // Weighted towards the dark set: those are the ones that read well behind
+  // bright art, the rest are there for the odd deliberately loud combination.
+  currentBgPal = chance(0.7) ? pick(Object.keys(DARKS)) : pick(Object.keys(PALETTES));
+  setBgPal(currentBgPal);
+
+  // The art keeps the bright palette colours; only the background is allowed
+  // to be dark, so a solid one is rolled from the low half of each channel.
+  document.getElementById("bg").value = Array.from({ length: 3 },
+    () => Math.floor(Math.random() * 4).toString(16)).join("");
+
+  const r = Math.random();
+  applyBgMode(r < 0.24 ? "none" : r < 0.5 ? "invert" : r < 0.79 ? "ramp" : "solid");
+
+  // Density shading only means anything when the art is actually built from
+  // shade characters; on line art it would flatten the whole picture.
+  const dirs = ["rows", "cols", "diag"];
+  if (/[░▒▓█]/.test(artBox.value)) dirs.push("shade", "shade");
+  applyDirMode(pick(dirs));
+
+  // Random colours already scramble the picture, so no second layer of noise
+  // on top and no ramp direction left to reverse.
+  const rnd = chance(0.22);
+  on("randomChars", rnd);
+  on("grain",     !rnd && chance(0.35));
+  on("scanlines", !rnd && chance(0.3));
+  on("reverse",   !rnd && chance(0.4));
+
+  on("bold", chance(0.45));
+  on("fade", chance(0.3));
+  on("halo", bgMode !== "none" && chance(0.4));
+  bwBtn.setAttribute("aria-pressed", chance(0.1) ? "true" : "false");
+
+  seed = Math.floor(Math.random() * 1e9);
+}
+
+document.getElementById("magic").addEventListener("click", () => { roll(); build(); });
+
+// ── art transforms ────────────────────────────────────────────
+
+// A button cannot reliably drive the browser's own undo stack, so the
+// transforms keep their own. Typing in the box still undoes with Ctrl+Z the
+// normal way; this history covers the changes the buttons make.
+const undoBtn = document.getElementById("undo");
+const history = [];
+
+function syncUndo() { undoBtn.disabled = history.length === 0; }
+
+function setArt(text) {
+  history.push(artBox.value);
+  if (history.length > 60) history.shift();
+  syncUndo();
+
+  // execCommand keeps the browser's own undo history alive where it is still
+  // supported, so Ctrl+Z in the box does not dead-end on a transform.
+  artBox.focus();
+  artBox.select();
+  let ok = false;
+  try { ok = document.execCommand("insertText", false, text); } catch (e) {}
+  if (!ok) artBox.value = text;
+  artBox.setSelectionRange(0, 0);
+  build();
+}
+
+undoBtn.addEventListener("click", () => {
+  if (!history.length) return;
+  const prev = history.pop();
+  artBox.focus();
+  artBox.select();
+  let ok = false;
+  try { ok = document.execCommand("insertText", false, prev); } catch (e) {}
+  if (!ok) artBox.value = prev;
+  artBox.setSelectionRange(0, 0);
+  syncUndo();
+  build();
+});
+
+const rows = () => artBox.value.replace(/\r/g, "").split("\n");
+
+// Every transform is a no-op on an empty box: framing nothing would produce a
+// tiny empty box, and trimming nothing divides by an empty set.
+const onArt = fn => () => { if (artBox.value.trim()) fn(); };
+
+// Characters that lean one way and have to lean the other after a flip.
+const MIRROR = { "/": "\\", "\\": "/", "(": ")", ")": "(", "[": "]", "]": "[",
+                 "{": "}", "}": "{", "<": ">", ">": "<", "╱": "╲", "╲": "╱",
+                 "▌": "▐", "▐": "▌", "┌": "┐", "┐": "┌", "└": "┘", "┘": "└",
+                 "├": "┤", "┤": "├", "d": "b", "b": "d", "q": "p", "p": "q" };
+
+const VFLIP  = { "/": "\\", "\\": "/", "▀": "▄", "▄": "▀", "┌": "└", "└": "┌",
+                 "┐": "┘", "┘": "┐", "┬": "┴", "┴": "┬", "'": ",", ",": "'",
+                 "b": "p", "p": "b", "d": "q", "q": "d", "M": "W", "W": "M" };
+
+const swap = (line, map) => line.replace(/./g, c => map[c] || c);
+
+document.getElementById("mirror").addEventListener("click", onArt(() => {
+  const w = Math.max(...rows().map(l => l.length));
+  setArt(rows().map(l => swap([...l.padEnd(w)].reverse().join(""), MIRROR)).join("\n"));
+}));
+
+document.getElementById("flip").addEventListener("click", onArt(() => {
+  setArt(rows().reverse().map(l => swap(l, VFLIP)).join("\n"));
+}));
+
+const frameSel = document.getElementById("frameStyle");
+Object.keys(FRAMES).forEach(name => {
+  const o = document.createElement("option");
+  o.value = name;
+  o.textContent = FRAMES[name][0] + FRAMES[name][1] + FRAMES[name][2] + "  " + name;
+  frameSel.appendChild(o);
+});
+
+function frameWith(text, style) {
+  const [tl, t, tr, l, r, bl, b, br] = FRAMES[style] || FRAMES.single;
+  const ls = text.replace(/\r/g, "").split("\n");
+  const w = Math.max(...ls.map(x => x.length));
+  return [tl + t.repeat(w + 2) + tr]
+    .concat(ls.map(x => l + " " + x.padEnd(w) + " " + r))
+    .concat([bl + b.repeat(w + 2) + br]).join("\n");
+}
+
+document.getElementById("frame").addEventListener("click", onArt(() => {
+  setArt(frameWith(artBox.value, frameSel.value));
+}));
+
+// Steps every block character one level denser, wrapping back to the lightest,
+// so repeated clicks cycle a drawing through its four shading levels.
+const STEP = { "░": "▒", "▒": "▓", "▓": "█", "█": "░" };
+document.getElementById("shade").addEventListener("click", onArt(() => {
+  setArt(rows().map(l => l.replace(/[░▒▓█]/g, c => STEP[c])).join("\n"));
+}));
+
+document.getElementById("trim").addEventListener("click", onArt(() => {
+  let ls = rows().map(l => l.replace(/\s+$/, ""));
+  while (ls.length && !ls[0].trim()) ls.shift();
+  while (ls.length && !ls[ls.length - 1].trim()) ls.pop();
+  const indent = Math.min(...ls.filter(l => l.trim())
+    .map(l => l.length - l.replace(/^ +/, "").length));
+  setArt(ls.map(l => l.slice(indent)).join("\n"));
+}));
+
+// ── art font ──────────────────────────────────────────────────
+// Which faces carry ░ ▒ ▓ █ and ─ │ ┌ ┐ at the right width varies by machine,
+// and a face that lacks them makes the art drift sideways. Rather than guess
+// once, let the picture be checked against a few.
+const ART_FONTS = {
+  "auto":       'Consolas, "Cascadia Mono", Menlo, "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", monospace',
+  "Consolas":   'Consolas, monospace',
+  "Cascadia":   '"Cascadia Mono", "Cascadia Code", monospace',
+  "DejaVu":     '"DejaVu Sans Mono", monospace',
+  "Liberation": '"Liberation Mono", monospace',
+  "Noto":       '"Noto Sans Mono", monospace',
+  "Menlo":      'Menlo, Monaco, monospace',
+  "Courier":    '"Courier New", Courier, monospace',
+  "Plex":       '"IBM Plex Mono", monospace',
+  "system":     'ui-monospace, monospace'
+};
+
+const fontSel = document.getElementById("artFont");
+Object.keys(ART_FONTS).forEach(name => {
+  const o = document.createElement("option");
+  o.value = name;
+  o.textContent = name === "auto" ? "font: auto" : "font: " + name;
+  fontSel.appendChild(o);
+});
+
+function applyFont() {
+  document.documentElement.style.setProperty("--art-font", ART_FONTS[fontSel.value] || ART_FONTS.auto);
+  try { localStorage.setItem("micronart-font", fontSel.value); } catch (e) {}
+}
+fontSel.addEventListener("change", applyFont);
+
+const lhInput = document.getElementById("lineHeight");
+const lhVal   = document.getElementById("lhVal");
+
+function applyLineHeight() {
+  const v = parseFloat(lhInput.value).toFixed(2);
+  document.documentElement.style.setProperty("--art-lh", v);
+  lhVal.textContent = v;
+  try { localStorage.setItem("micronart-lh", v); } catch (e) {}
+  syncRecipe();
+}
+lhInput.addEventListener("input", applyLineHeight);
+
+// ── recipe ────────────────────────────────────────────────────
+// Everything that decides how the art is coloured, in one line. Palette names
+// rather than indexes, so a code keeps working when palettes are added later.
+// Spaces become hyphens: the separator is the dot.
+const recipeBox = document.getElementById("recipe");
+const recipeMsg = document.getElementById("recipeMsg");
+const cb = id => document.getElementById(id);
+
+function encodeRecipe() {
+  const flags = (cb("scanlines").checked   ? "s" : "")
+              + (cb("reverse").checked     ? "r" : "")
+              + (cb("randomChars").checked ? "x" : "")
+              + (cb("centerArt").checked   ? "c" : "")
+              + (cb("grain").checked       ? "g" : "")
+              + (cb("bold").checked        ? "b" : "")
+              + (cb("fade").checked        ? "f" : "")
+              + (cb("halo").checked        ? "h" : "")
+              + (bwBtn.getAttribute("aria-pressed") === "true" ? "w" : "");
+  const solid = cb("bg").value.trim().toLowerCase();
+  const parts = [
+    "MA1",
+    currentPal.replace(/ /g, "-"),
+    currentBgPal.replace(/ /g, "-"),
+    bgMode,
+    /^[0-9a-f]{3}$/.test(solid) ? solid : "000",
+    dirMode,
+    flags || "0",
+    seed.toString(36),
+    Math.round(parseFloat(lhInput.value) * 100)
+  ];
+  // The four stops ride along whenever the custom palette is in play, so the
+  // code carries the colours themselves and not just their name.
+  if (currentPal === "custom" || currentBgPal === "custom") {
+    parts.push(customStops.join("-"));
+  }
+  return parts.join(".");
+}
+
+function syncRecipe() {
+  if (document.activeElement !== recipeBox) recipeBox.value = encodeRecipe();
+}
+
+function applyRecipe(code) {
+  const p = String(code).trim().split(".");
+  if (p.length < 9 || p[0].toUpperCase() !== "MA1") return "not a Micron Artist code";
+
+  const pal   = p[1].replace(/-/g, " ");
+  const bgPal = p[2].replace(/-/g, " ");
+  if (!PALETTES[pal])       return "unknown palette: " + pal;
+  if (!BG_PALETTES[bgPal])  return "unknown background palette: " + bgPal;
+  if (!["none", "solid", "ramp", "invert"].includes(p[3])) return "unknown background mode: " + p[3];
+  if (!["rows", "cols", "diag", "shade"].includes(p[5]))   return "unknown gradient: " + p[5];
+
+  const s = parseInt(p[7], 36);
+  const lh = parseInt(p[8], 10);
+  if (!isFinite(s) || !isFinite(lh)) return "the seed or the line spacing is not a number";
+
+  // Custom stops, when the code carries them, have to be in place before the
+  // palette is selected: the ramp is rebuilt from them.
+  if (p[9]) {
+    const stops = p[9].split("-");
+    if (stops.length !== 4 || stops.some(c => !/^[0-9a-f]{3}$/.test(c)))
+      return "the custom colours are malformed";
+    stops.forEach((c, i) => { wells[i].value = to6(c); });
+    refreshCustom(false);
+  }
+
+  currentPal = pal;     setPal(pal);
+  currentBgPal = bgPal; setBgPal(bgPal);
+  if (/^[0-9a-f]{3}$/.test(p[4])) cb("bg").value = p[4];
+  applyBgMode(p[3]);
+  applyDirMode(p[5]);
+
+  const flags = p[6] === "0" ? "" : p[6];
+  cb("scanlines").checked   = flags.includes("s");
+  cb("reverse").checked     = flags.includes("r");
+  cb("randomChars").checked = flags.includes("x");
+  cb("centerArt").checked   = flags.includes("c");
+  cb("grain").checked       = flags.includes("g");
+  cb("bold").checked        = flags.includes("b");
+  cb("fade").checked        = flags.includes("f");
+  cb("halo").checked        = flags.includes("h");
+  bwBtn.setAttribute("aria-pressed", flags.includes("w") ? "true" : "false");
+
+  seed = s;
+  lhInput.value = Math.min(Math.max(lh / 100, 0.6), 1.4);
+  applyLineHeight();
+  build();
+  return null;
+}
+
+function say(text, bad) {
+  recipeMsg.textContent = text;
+  recipeMsg.classList.toggle("bad", !!bad);
+}
+
+document.getElementById("applyRecipe").addEventListener("click", () => {
+  const err = applyRecipe(recipeBox.value);
+  if (err) say(err, true);
+  else {
+    say("Applied.");
+    recipeBox.blur();
+    syncRecipe();
+  }
+});
+
+recipeBox.addEventListener("keydown", e => {
+  if (e.key === "Enter") { e.preventDefault(); document.getElementById("applyRecipe").click(); }
+});
+
+document.getElementById("copyRecipe").addEventListener("click", async (e) => {
+  syncRecipe();
+  const b = e.currentTarget, old = b.textContent;
+  try {
+    await navigator.clipboard.writeText(recipeBox.value);
+    b.textContent = "Copied";
+  } catch (err) {
+    recipeBox.select();
+    b.textContent = "Ctrl+C";
+  }
+  setTimeout(() => { b.textContent = old; }, 1400);
+});
+
+document.getElementById("copy").addEventListener("click", async (e) => {
+  if (!out.value) return;
+  const b = e.currentTarget, old = b.textContent;
+  try {
+    await navigator.clipboard.writeText(out.value);
+    b.textContent = "Copied";
+  } catch (err) {
+    out.select();
+    b.textContent = "Press Ctrl+C";
+  }
+  setTimeout(() => { b.textContent = old; }, 1400);
+});
+
+document.getElementById("download").addEventListener("click", async () => {
+  if (!out.value) return;
+
+  // Inside the claude.ai artifact viewer a plain download link is inert, so the
+  // file goes through the downloads capability instead. That path does not
+  // allow a .mu extension, hence .txt there; micron is plain text either way.
+  // Served as a normal page the anchor below runs and keeps the .mu name.
+  if (window.claude && window.claude.use) {
+    const dl = await window.claude.use("downloads");
+    if (dl) {
+      try { await dl.save({ filename: "micron-art.txt", data: out.value + "\n" }); }
+      catch (err) { /* declined, or not available in this view */ }
+      return;
+    }
+  }
+
+  const blob = new Blob([out.value + "\n"], { type: "text/plain;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "header.mu";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+
+document.getElementById("clear").addEventListener("click", () => {
+  if (artBox.value) setArt("");
+  artBox.focus();
+});
+
+// Puts the title card back with a fresh look. Goes through setArt, so whatever
+// was in the box before is one Undo away.
+document.getElementById("demo").addEventListener("click", () => {
+  roll();
+  setArt(SAMPLE);
+});
+
+// Where the counter cannot be reached, say nothing rather than showing a
+// broken image: the artifact preview blocks every external host.
+document.getElementById("hits").addEventListener("error", () => {
+  document.getElementById("footerStats").hidden = true;
+});
+
+const infoBox = document.getElementById("infoBox");
+["infoBtn", "infoBtn2"].forEach(id =>
+  document.getElementById(id).addEventListener("click", () => infoBox.showModal()));
+document.getElementById("infoClose").addEventListener("click", () => infoBox.close());
+// click on the backdrop, which is the dialog element itself outside its content
+infoBox.addEventListener("click", e => { if (e.target === infoBox) infoBox.close(); });
+
+document.getElementById("themeBtn").addEventListener("click", () => {
+  const root = document.documentElement;
+  const now = root.getAttribute("data-theme");
+  const prefersDark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = now === "dark" || (!now && prefersDark);
+  root.setAttribute("data-theme", isDark ? "light" : "dark");
+});
+
+// ── start ─────────────────────────────────────────────────────
+// String.raw so the slant lettering keeps its backslashes as typed.
+const TITLE_ART = String.raw`░███     ░███ ░██                                                ░███                ░██    ░██              ░██
+░████   ░████                                                   ░██░██               ░██                     ░██
+░██░██ ░██░██ ░██ ░███████  ░██░████  ░███████  ░████████      ░██  ░██  ░██░████ ░████████ ░██ ░███████  ░████████
+░██ ░████ ░██ ░██░██    ░██ ░███     ░██    ░██ ░██    ░██    ░█████████ ░███        ░██    ░██░██           ░██
+░██  ░██  ░██ ░██░██        ░██      ░██    ░██ ░██    ░██    ░██    ░██ ░██         ░██    ░██ ░███████     ░██
+░██       ░██ ░██░██    ░██ ░██      ░██    ░██ ░██    ░██    ░██    ░██ ░██         ░██    ░██       ░██    ░██
+░██       ░██ ░██ ░███████  ░██       ░███████  ░██    ░██    ░██    ░██ ░██          ░████ ░██ ░███████      ░████
+
+                      __   ____   ___  __  __     __   ____  ____    _  _   __   __ _  ____  ____
+                     / _\ / ___) / __)(  )(  )   / _\ (  _ \(_  _)  ( \/ ) / _\ (  / )(  __)(  _ \
+                    /    \\___ \( (__  )(  )(   /    \ )   /  )(    / \/ \/    \ )  (  ) _)  )   /
+                    \_/\_/(____/ \___)(__)(__)  \_/\_/(__\_) (__)   \_)(_/\_/\_/(__\_)(____)(__\_)`;
+
+// Framed twice for the title card: a plain rule around the lettering, then the
+// corner piece around the lot.
+const SAMPLE = frameWith(frameWith(TITLE_ART, "single"), "arrows");
+
+let savedMode = "none";
+try {
+  const savedArt   = localStorage.getItem("micronart-art");
+  const savedPal   = localStorage.getItem("micronart-pal");
+  const savedBgPal = localStorage.getItem("micronart-bgpal");
+  const savedLh    = localStorage.getItem("micronart-lh");
+  const savedDir   = localStorage.getItem("micronart-dir");
+  const savedStops = localStorage.getItem("micronart-stops");
+  const savedFont  = localStorage.getItem("micronart-font");
+  if (savedFont && ART_FONTS[savedFont]) fontSel.value = savedFont;
+  savedMode        = localStorage.getItem("micronart-bgmode") || "none";
+  if (["rows", "cols", "diag", "shade"].includes(savedDir)) dirMode = savedDir;
+
+  if (savedStops) {
+    const st = savedStops.split("-");
+    if (st.length === 4 && st.every(c => /^[0-9a-f]{3}$/.test(c))) {
+      st.forEach((c, i) => { wells[i].value = to6(c); });
+      refreshCustom(false);
+    }
+  }
+
+  if (savedArt) artBox.value = savedArt;
+  if (savedPal && PALETTES[savedPal])        { currentPal   = savedPal;   setPal(savedPal); }
+  if (savedBgPal && BG_PALETTES[savedBgPal]) { currentBgPal = savedBgPal; setBgPal(savedBgPal); }
+  if (savedLh) lhInput.value = savedLh;
+} catch (e) {}
+
+if (!artBox.value) artBox.value = SAMPLE;
+
+applyBgMode(["none", "solid", "ramp", "invert"].includes(savedMode) ? savedMode : "none");
+applyDirMode(dirMode);
+applyFont();
+applyLineHeight();
+
+// The title card gets a new look on every visit. Once there is art of your own
+// in the box, your own settings are restored instead of being thrown away.
+if (artBox.value === SAMPLE) roll();
+
+build();
+</script>

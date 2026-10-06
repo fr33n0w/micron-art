@@ -5,6 +5,7 @@
   Share and modify freely, but not for sale and not under another name:
   keep the credit and the link back to the original project.
 -->
+<meta charset="utf-8">
 <title>Micron Artist</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -468,6 +469,14 @@ h1 .mark { font-family: "IBM Plex Mono", monospace; color: var(--accent); }
 }
 .seg button:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
 
+/* Eight gradients do not fit on one line of a 200px panel: two rows of four. */
+.seg.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); }
+.seg.grid4 button { padding: 5px 2px; }
+.seg.grid4 button:nth-child(4n) { border-right: 0; }
+.seg.grid4 button:nth-child(-n+4) { border-bottom: 1px solid var(--line); }
+
+#magicName { align-self: center; }
+
 .check {
   display: flex;
   align-items: center;
@@ -718,8 +727,9 @@ h1 .mark { font-family: "IBM Plex Mono", monospace; color: var(--accent); }
         <li>Paste ASCII art into the first box, or press <b>Demo page</b> to
             load the title card and experiment on that.</li>
         <li>Pick a palette and a background, then try the effects. <b>Magic</b>
-            rolls the whole lot at once; <b>Shuffle</b> redraws the random
-            colours.</li>
+            rolls the whole lot at once, usually as a named look (crt, neon,
+            poster, heat...) and sometimes inventing a palette from a colour
+            harmony; <b>Shuffle</b> redraws the random colours.</li>
         <li>Copy the micron from the last box and paste it into your
             <code>.mu</code> page.</li>
       </ol>
@@ -760,9 +770,20 @@ h1 .mark { font-family: "IBM Plex Mono", monospace; color: var(--accent); }
 
       <h3>Micron notes</h3>
       <p>
-        Colours are 12 bit, three hex digits: <code>`F0f0</code> sets the
-        foreground, <code>`B002</code> the background, <code>`f</code> and
-        <code>`b</code> close them. Backticks and backslashes in your art are
+        Classic colours are 12 bit, three hex digits: <code>`F0f0</code> sets
+        the foreground, <code>`B002</code> the background, <code>`f</code> and
+        <code>`b</code> close them. Every reader understands them.
+      </p>
+      <p>
+        <b>24 bit</b> writes <code>`FT00ff00</code> and <code>`BT000022</code>,
+        six digits, sixteen million colours and smooth gradients. NomadNet reads
+        them since 0.9.11 and shows them exactly with <code>colormode = 24bit</code>
+        in its config; on 256 colours it picks the nearest. An older reader prints
+        the tags as text. Every colour change costs bytes, so <b>steps</b> sets how
+        many shades a gradient may use: fewer steps, smaller page.
+      </p>
+      <p>
+        Backticks and backslashes in your art are
         escaped automatically. Line spacing is a preview control only, micron
         has no such tag: the reader's terminal decides it.
       </p>
@@ -798,13 +819,35 @@ h1 .mark { font-family: "IBM Plex Mono", monospace; color: var(--accent); }
 
           <div class="opt-block">
             <div class="opt-title">Gradient</div>
-            <div class="seg" id="dirMode" role="radiogroup" aria-label="gradient direction">
-              <button type="button" data-dir="rows"  aria-checked="true">rows</button>
-              <button type="button" data-dir="cols"  aria-checked="false">cols</button>
-              <button type="button" data-dir="diag"  aria-checked="false">diag</button>
-              <button type="button" data-dir="shade" aria-checked="false">░▒▓█</button>
+            <div class="seg grid4" id="dirMode" role="radiogroup" aria-label="gradient direction">
+              <button type="button" data-dir="rows"   aria-checked="true">rows</button>
+              <button type="button" data-dir="cols"   aria-checked="false">cols</button>
+              <button type="button" data-dir="diag"   aria-checked="false">diag</button>
+              <button type="button" data-dir="adiag"  aria-checked="false">anti</button>
+              <button type="button" data-dir="radial" aria-checked="false">radial</button>
+              <button type="button" data-dir="spiral" aria-checked="false">spiral</button>
+              <button type="button" data-dir="wave"   aria-checked="false">wave</button>
+              <button type="button" data-dir="shade"  aria-checked="false">░▒▓█</button>
             </div>
             <span class="tiny" id="dirHint">top to bottom</span>
+          </div>
+
+          <div class="opt-block">
+            <div class="opt-title">Colour depth</div>
+            <div class="seg" id="depthMode" role="radiogroup" aria-label="colour depth">
+              <button type="button" data-depth="12" aria-checked="true">12 bit</button>
+              <button type="button" data-depth="24" aria-checked="false">24 bit</button>
+            </div>
+            <label class="inline" id="stepsRow" hidden>steps
+              <select id="steps" class="mini-sel" aria-label="gradient steps">
+                <option value="0">smooth</option>
+                <option value="64">64</option>
+                <option value="32">32</option>
+                <option value="16" selected>16</option>
+                <option value="8">8</option>
+              </select>
+            </label>
+            <span class="tiny" id="depthHint">4096 colours, every reader</span>
           </div>
 
           <div class="opt-block">
@@ -816,8 +859,8 @@ h1 .mark { font-family: "IBM Plex Mono", monospace; color: var(--accent); }
               <button type="button" data-bg="invert" aria-checked="false">invert</button>
             </div>
             <label class="inline" id="bgSolidRow" hidden>colour
-              <input type="text" id="bg" placeholder="002" maxlength="3" spellcheck="false">
-              <span class="tiny">3 hex digits</span>
+              <input type="text" id="bg" placeholder="002" maxlength="6" spellcheck="false">
+              <span class="tiny">3 or 6 hex digits</span>
             </label>
             <div class="pdrop" id="bgPalDrop">
               <button class="pdrop-btn" type="button" aria-expanded="false" aria-haspopup="listbox"></button>
@@ -835,6 +878,8 @@ h1 .mark { font-family: "IBM Plex Mono", monospace; color: var(--accent); }
             <label class="check"><input type="checkbox" id="grain"> grain <span class="tiny">roughen the ramp</span></label>
             <label class="check"><input type="checkbox" id="bold"> bold the whole block</label>
             <label class="check"><input type="checkbox" id="fade"> fade the top and bottom rows</label>
+            <label class="check"><input type="checkbox" id="bounce"> bounce <span class="tiny">ramp out and back</span></label>
+            <label class="check"><input type="checkbox" id="glow"> edge glow <span class="tiny">light the outlines</span></label>
             <label class="check"><input type="checkbox" id="centerArt"> centre on the page</label>
           </div>
         </div>
@@ -842,6 +887,7 @@ h1 .mark { font-family: "IBM Plex Mono", monospace; color: var(--accent); }
         <div class="opts-actions">
           <button class="btn" type="button" id="magic" title="roll palette, background and effects together">Magic</button>
           <button class="ghost-btn" type="button" id="reroll" title="draw a new set of random colours">Shuffle</button>
+          <span class="tiny" id="magicName"></span>
           <span class="act-sep"></span>
           <button class="ghost-btn" type="button" id="mirror" title="flip left to right">Mirror</button>
           <button class="ghost-btn" type="button" id="flip" title="flip top to bottom">Flip</button>
@@ -900,7 +946,7 @@ h1 .mark { font-family: "IBM Plex Mono", monospace; color: var(--accent); }
     <div class="step-body">
       <div class="recipe-row">
         <input type="text" id="recipe" spellcheck="false" autocomplete="off"
-               aria-label="recipe code" placeholder="MA1.acid.dark-void.ramp.002.diag.sr.k3f9x.110">
+               aria-label="recipe code" placeholder="MA2.acid.dark-void.ramp.002.diag.sr.k3f9x.110.24s16">
         <button class="btn ghost" type="button" id="applyRecipe">Apply</button>
         <button class="btn ghost" type="button" id="copyRecipe">Copy</button>
       </div>
@@ -1009,8 +1055,12 @@ const DARKS = {
 
 // Four stops of your own, interpolated into the same eight-step ramp the built
 // in palettes use, so every effect works on it unchanged.
-let customStops = ["f0f", "80f", "08f", "0fc"];
+// Stops are kept at full 24 bit, as the colour wells give them; 12 bit mode
+// cuts them down on the way into the ramp.
+let customStops = ["ff00ff", "8800ff", "0088ff", "00ffcc"];
 
+// 12 bit: interpolate in nibbles, exactly as before 24 bit existed, so old
+// recipes still come out byte for byte the same.
 function rampFromStops(stops) {
   const val = (c, i) => parseInt(c[i], 16);
   const out = [];
@@ -1024,7 +1074,30 @@ function rampFromStops(stops) {
   return out;
 }
 
-PALETTES.custom = rampFromStops(customStops);
+// 24 bit: the same eight steps, but each one a full rrggbb.
+function rampFromStops24(stops) {
+  const rgb = stops.map(rgbOf);
+  const out = [];
+  for (let k = 0; k < 8; k++) {
+    const t = k / 7 * (rgb.length - 1);
+    const a = rgb[Math.floor(t)], b = rgb[Math.min(Math.ceil(t), rgb.length - 1)];
+    const f = t - Math.floor(t);
+    out.push(a.map((v, i) => Math.round(v + (b[i] - v) * f).toString(16).padStart(2, "0")).join(""));
+  }
+  return out;
+}
+
+// High nibble of each channel: the round trip a #rrggbb makes to `Frgb.
+const short3 = h6 => h6[0] + h6[2] + h6[4];
+
+// A colour is three hex digits (12 bit) or six (24 bit).
+function rgbOf(c) {
+  return c.length === 3 ? [...c].map(d => parseInt(d, 16) * 17)
+                        : c.match(/../g).map(p => parseInt(p, 16));
+}
+const isHex = t => /^([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(t);
+
+PALETTES.custom = rampFromStops(customStops.map(short3));
 
 // The background picker offers the dark set first, then the bright ones.
 const BG_PALETTES = Object.assign({}, DARKS, PALETTES);
@@ -1048,6 +1121,8 @@ const FRAMES = {
 
 const SHADES = " ░▒▓█";
 
+const DIRS = ["rows", "cols", "diag", "adiag", "radial", "spiral", "wave", "shade"];
+
 const bwBtn   = document.getElementById("bwBtn");
 const artBox  = document.getElementById("art");
 const preview = document.getElementById("preview");
@@ -1058,6 +1133,7 @@ let currentPal   = "acid";
 let currentBgPal = "dark void";
 let bgMode       = "none";
 let dirMode      = "rows";
+let depth        = 12;
 let seed         = Math.floor(Math.random() * 1e9);
 
 function hex3(t) {
@@ -1072,21 +1148,6 @@ function esc(s) {
 
 // ── colouring ─────────────────────────────────────────────────
 
-// Halve every channel: used by the scanline effect, which dims alternate rows
-// the way an old CRT did.
-function dim(c) {
-  return c.split("").map(d =>
-    Math.max(0, Math.floor(parseInt(d, 16) / 2)).toString(16)).join("");
-}
-
-// Perceived brightness, so black and white keeps the gradient readable instead
-// of flattening yellow and blue to the same grey.
-function grey(c) {
-  const r = parseInt(c[0], 16), g = parseInt(c[1], 16), b = parseInt(c[2], 16);
-  const l = Math.round(0.299 * r + 0.587 * g + 0.114 * b).toString(16);
-  return l + l + l;
-}
-
 // Deterministic per-cell noise. A plain Math.random() would reshuffle the whole
 // picture on every keystroke, since build() re-renders from scratch; this way
 // the colours only change when the seed does, i.e. on Shuffle or Magic.
@@ -1097,11 +1158,82 @@ function noise(row, col, seed) {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
+// A triangle wave over [0, 2]: up, then back down. Bounce and spiral use it so
+// a repeated ramp turns round instead of jumping back to its first colour.
+function tri(x) {
+  x = ((x % 2) + 2) % 2;
+  return x > 1 ? 2 - x : x;
+}
+
+// Where a cell sits along the ramp, 0 to 1, for each gradient.
+function rampPos(dir, ch, row, col, rowsN, width, seed) {
+  const px = col / Math.max(width - 1, 1);
+  const py = row / Math.max(rowsN - 1, 1);
+  const dx = (px - 0.5) * 2, dy = (py - 0.5) * 2;
+  switch (dir) {
+    case "shade":
+      // only the shade blocks carry a density; the rest of the art runs by row
+      return SHADES.indexOf(ch) > -1 ? SHADES.indexOf(ch) / (SHADES.length - 1) : py;
+    case "cols":   return px;
+    case "diag":   return (px + py) / 2;
+    case "adiag":  return (1 - px + py) / 2;
+    case "radial": return Math.min(1, Math.sqrt((dx * dx + dy * dy) / 2));
+    case "spiral": {
+      const a = Math.atan2(dy, dx) / (2 * Math.PI) + 0.5;
+      return tri(2 * a + 1.5 * Math.sqrt((dx * dx + dy * dy) / 2));
+    }
+    case "wave": {
+      // the phase comes from the seed, so Shuffle and Magic move the wave
+      const ph = (seed % 628) / 100;
+      return py * 0.6 + 0.4 * (0.5 + 0.5 * Math.sin(px * Math.PI * 3 + ph));
+    }
+    default:       return py;
+  }
+}
+
 function colorize(text, o) {
+  const deep = o.depth === 24;
   let cols = PALETTES[o.pal];
   if (o.reverse) cols = cols.slice().reverse();
-  const bgCols  = BG_PALETTES[o.bgPal] || cols;
+  const bgCols   = BG_PALETTES[o.bgPal] || cols;
   const bgIsDark = !!DARKS[o.bgPal];
+  const ramp     = cols.map(rgbOf);
+  const bgRamp   = bgCols.map(rgbOf);
+  const n        = cols.length;
+
+  // Colours travel as [r, g, b] in 0..255. In 12 bit every step snaps back to
+  // a nibble, so the output is the same one the 12 bit tool always produced.
+  const nib  = v => Math.min(15, Math.max(0, Math.round(v / 17)));
+  const snap = c => deep ? c.map(v => Math.min(255, Math.max(0, Math.round(v))))
+                         : c.map(v => nib(v) * 17);
+
+  // Halve every channel: used by the scanline effect, which dims alternate rows
+  // the way an old CRT did.
+  const dim = c => deep ? c.map(v => v >> 1) : c.map(v => (nib(v) >> 1) * 17);
+
+  // Perceived brightness, so black and white keeps the gradient readable instead
+  // of flattening yellow and blue to the same grey.
+  const grey = c => {
+    if (deep) {
+      const l = Math.round(0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]);
+      return [l, l, l];
+    }
+    const l = Math.round(0.299 * nib(c[0]) + 0.587 * nib(c[1]) + 0.114 * nib(c[2])) * 17;
+    return [l, l, l];
+  };
+
+  // Halfway to white, for the edge glow.
+  const lift = c => snap(c.map(v => v + (255 - v) * 0.45));
+
+  // 24 bit samples the ramp anywhere between its eight stops.
+  const at = (r, pos) => {
+    const t = Math.min(Math.max(pos, 0), 1) * (r.length - 1);
+    const i = Math.min(Math.floor(t), r.length - 2), f = t - i;
+    return snap(r[i].map((v, k) => v + (r[i + 1][k] - v) * f));
+  };
+
+  const fmt = c => deep ? "T" + c.map(v => v.toString(16).padStart(2, "0")).join("")
+                        : c.map(v => nib(v).toString(16)).join("");
 
   let lines = text.replace(/\r/g, "").split("\n");
   while (lines.length && !lines[0].trim()) lines.shift();
@@ -1110,6 +1242,13 @@ function colorize(text, o) {
 
   const width = Math.max(...lines.map(l => l.length));
   lines = lines.map(l => l.padEnd(width, " "));
+
+  // A glyph is on the edge when any of its four neighbours is empty.
+  const blank = (r, c) => r < 0 || r >= lines.length || c < 0 || c >= width || lines[r][c] === " ";
+  const edge  = (r, c) => blank(r - 1, c) || blank(r + 1, c) || blank(r, c - 1) || blank(r, c + 1);
+
+  const solid = o.bgSolid ? snap(rgbOf(o.bgSolid)) : null;
+  const black = [0, 0, 0];
 
   return lines.map((line, row) => {
     let s = "";
@@ -1121,46 +1260,51 @@ function colorize(text, o) {
     for (let col = 0; col < line.length; col++) {
       const ch = line[col];
 
-      // where this character sits along the ramp
-      const px = col / Math.max(width - 1, 1);
-      const py = row / Math.max(lines.length - 1, 1);
-      let pos;
-      if (o.dir === "shade" && SHADES.indexOf(ch) > -1) {
-        pos = SHADES.indexOf(ch) / (SHADES.length - 1);
-      } else if (o.dir === "cols") {
-        pos = px;
-      } else if (o.dir === "diag") {
-        pos = (px + py) / 2;
+      let pos = rampPos(o.dir, ch, row, col, lines.length, width, o.seed || 1);
+      if (o.bounce) pos = tri(pos * 2);
+
+      let fg, bg = null, rampC, idx;
+      if (deep) {
+        if (o.random) pos = noise(row, col, o.seed || 1);
+        else if (o.grain) pos += (noise(row, col, (o.seed || 1) + 7) - 0.5) * 2.5 / n;
+        pos = Math.min(Math.max(pos, 0), 1);
+        // Fewer steps, fewer colour changes along a line, a smaller page.
+        if (o.steps > 1) pos = Math.min(Math.floor(pos * o.steps), o.steps - 1) / (o.steps - 1);
+        rampC = at(ramp, pos);
       } else {
-        pos = py;
+        idx = Math.min(Math.floor(pos * n), n - 1);
+        if (o.random) {
+          idx = Math.floor(noise(row, col, o.seed || 1) * n);
+        } else if (o.grain) {
+          // Grain keeps the gradient but roughens it: one step either way, so the
+          // shape still reads while the surface stops looking machine-smooth.
+          idx += Math.floor(noise(row, col, (o.seed || 1) + 7) * 3) - 1;
+          idx = Math.min(Math.max(idx, 0), n - 1);
+        }
+        rampC = ramp[idx];
       }
 
-      let idx = Math.min(Math.floor(pos * cols.length), cols.length - 1);
-      if (o.random) {
-        idx = Math.floor(noise(row, col, o.seed || 1) * cols.length);
-      } else if (o.grain) {
-        // Grain keeps the gradient but roughens it: one step either way, so the
-        // shape still reads while the surface stops looking machine-smooth.
-        idx += Math.floor(noise(row, col, (o.seed || 1) + 7) * 3) - 1;
-        idx = Math.min(Math.max(idx, 0), cols.length - 1);
-      }
-      const ramp = cols[idx];
+      fg = rampC;
 
-      let fg = ramp;
-      let bg = null;
-
-      if (o.bgMode === "solid" && o.bgSolid) {
-        bg = o.bgSolid;
+      if (o.bgMode === "solid" && solid) {
+        bg = solid;
       } else if (o.bgMode === "ramp") {
         // A full-brightness background swallows the glyphs, so a bright palette
         // is dimmed on the way in. The dark set is already dark: dimming it
         // again would flatten it to black.
-        const c = bgCols[Math.min(idx, bgCols.length - 1)];
+        const c = deep ? at(bgRamp, pos) : bgRamp[Math.min(idx, bgRamp.length - 1)];
         bg = bgIsDark ? c : dim(c);
       } else if (o.bgMode === "invert") {
         // the ramp paints the background, the glyph goes dark on top of it
-        bg = ramp;
-        fg = "000";
+        bg = rampC;
+        fg = black;
+      }
+
+      // Edge glow lights whatever carries the colour: the glyph, or under
+      // invert the background behind it.
+      if (o.glow && ch !== " " && edge(row, col)) {
+        if (o.bgMode === "invert") bg = lift(bg);
+        else fg = lift(fg);
       }
 
       // A halo backs the glyphs only, leaving the gaps open, so the art keeps
@@ -1177,8 +1321,8 @@ function colorize(text, o) {
       // Fade sinks the outermost rows towards the dark, so the block reads as
       // lit from the middle rather than cut off at the edges.
       if (o.fade && lines.length >= 5) {
-        const edge = Math.min(row, lines.length - 1 - row);
-        for (let k = 0; k < 2 - Math.min(edge, 2); k++) {
+        const e = Math.min(row, lines.length - 1 - row);
+        for (let k = 0; k < 2 - Math.min(e, 2); k++) {
           fg = dim(fg);
           if (bg) bg = dim(bg);
         }
@@ -1186,8 +1330,9 @@ function colorize(text, o) {
 
       if (o.bw) { fg = grey(fg); if (bg) bg = grey(bg); }
 
-      if (fg !== curF) { s += "`F" + fg; curF = fg; }
-      if (bg !== curB) { s += bg ? "`B" + bg : "`b"; curB = bg; }
+      const f = fmt(fg), b = bg ? fmt(bg) : null;
+      if (f !== curF) { s += "`F" + f; curF = f; }
+      if (b !== curB) { s += b ? "`B" + b : "`b"; curB = b; }
 
       // Both must be escaped. A lone backslash arms micron's escape and keeps
       // it armed until the next backtick, which then gets eaten: the colour tag
@@ -1241,10 +1386,23 @@ function render(text) {
 
       if (ch === "`") {
         const n = raw[i + 1];
-        if ((n === "F" || n === "B") && hex3(raw.substr(i + 2, 3))) {
-          if (n === "F") fg = hex3(raw.substr(i + 2, 3));
-          else           bg = hex3(raw.substr(i + 2, 3));
-          dirty = true; i += 5; continue;
+        if (n === "F" || n === "B") {
+          // Three forms, checked in NomadNet's order: `FTrrggbb (24 bit),
+          // `Fgnn (grey, 00 to 99), `Frgb (12 bit).
+          let c = null, len = 0;
+          const t6 = raw.substr(i + 3, 6), g2 = raw.substr(i + 3, 2);
+          if (raw[i + 2] === "T" && /^[0-9a-fA-F]{6}$/.test(t6)) {
+            c = "#" + t6; len = 9;
+          } else if (raw[i + 2] === "g" && /^\d\d$/.test(g2)) {
+            const v = Math.round(parseInt(g2, 10) * 255 / 99);
+            c = `rgb(${v},${v},${v})`; len = 5;
+          } else if (hex3(raw.substr(i + 2, 3))) {
+            c = hex3(raw.substr(i + 2, 3)); len = 5;
+          }
+          if (c) {
+            if (n === "F") fg = c; else bg = c;
+            dirty = true; i += len; continue;
+          }
         }
         if (n === "f") { fg = null; dirty = true; i += 2; continue; }
         if (n === "b") { bg = null; dirty = true; i += 2; continue; }
@@ -1280,9 +1438,13 @@ function build() {
     pal:       currentPal,
     bgPal:     currentBgPal,
     bgMode:    bgMode,
-    bgSolid:   /^[0-9a-fA-F]{3}$/.test(solid) ? solid.toLowerCase() : "",
+    bgSolid:   isHex(solid) ? solid.toLowerCase() : "",
     center:    document.getElementById("centerArt").checked,
     dir:       dirMode,
+    depth:     depth,
+    steps:     parseInt(stepsSel.value, 10) || 0,
+    bounce:    document.getElementById("bounce").checked,
+    glow:      document.getElementById("glow").checked,
     scanlines: document.getElementById("scanlines").checked,
     reverse:   document.getElementById("reverse").checked,
     random:    document.getElementById("randomChars").checked,
@@ -1304,7 +1466,7 @@ function build() {
 
 // ── palettes ──────────────────────────────────────────────────
 function stripHtml(set, name) {
-  return set[name].map(c => `<span style="background:${hex3(c)}"></span>`).join("");
+  return set[name].map(c => `<span style="background:rgb(${rgbOf(c).join(",")})"></span>`).join("");
 }
 
 // Returns a select(name) function so the caller can restore a saved choice.
@@ -1373,14 +1535,14 @@ const setBgPal  = makePalPicker(bgPalDrop, BG_PALETTES, currentBgPal, name => {
 // ── custom palette ────────────────────────────────────────────
 const wells = ["c0", "c1", "c2", "c3"].map(id => document.getElementById(id));
 
-// The colour wells are 24 bit, micron is 12: take the high nibble of each
+// The colour wells are 24 bit. 12 bit mode keeps the high nibble of each
 // channel, which is exactly the round trip a #rrggbb makes to `Frgb.
-const to3 = hex6 => hex6.slice(1).match(/../g).map(p => p[0]).join("").toLowerCase();
-const to6 = c3 => "#" + c3.split("").map(d => d + d).join("");
+const to6 = c => "#" + (c.length === 3 ? c.split("").map(d => d + d).join("") : c);
 
 function refreshCustom(select) {
-  customStops = wells.map(w => to3(w.value));
-  PALETTES.custom = rampFromStops(customStops);
+  customStops = wells.map(w => w.value.slice(1).toLowerCase());
+  PALETTES.custom = depth === 24 ? rampFromStops24(customStops)
+                                 : rampFromStops(customStops.map(short3));
   BG_PALETTES.custom = PALETTES.custom;
   try { localStorage.setItem("micronart-stops", customStops.join("-")); } catch (e) {}
   setPal.refresh();
@@ -1392,6 +1554,35 @@ function refreshCustom(select) {
 
 wells.forEach(w => {
   w.addEventListener("input", () => { refreshCustom(true); build(); });
+});
+
+// ── colour depth ──────────────────────────────────────────────
+// 12 bit is the classic `Frgb that every reader understands. 24 bit writes
+// `FTrrggbb, which NomadNet parses since 0.9.11: exact colours with colormode
+// set to 24bit, the nearest of 256 otherwise. An older reader prints the tags.
+const depthSeg  = document.getElementById("depthMode");
+const stepsRow  = document.getElementById("stepsRow");
+const stepsSel  = document.getElementById("steps");
+const depthHint = document.getElementById("depthHint");
+
+function applyDepth(d) {
+  depth = d === 24 ? 24 : 12;
+  depthSeg.querySelectorAll("button").forEach(b =>
+    b.setAttribute("aria-checked", +b.dataset.depth === depth ? "true" : "false"));
+  stepsRow.hidden = depth !== 24;
+  depthHint.textContent = depth === 24
+    ? "16 million colours, NomadNet 1.x with colormode = 24bit"
+    : "4096 colours, every reader";
+  refreshCustom(false);
+  try { localStorage.setItem("micronart-depth", depth); } catch (e) {}
+}
+
+depthSeg.querySelectorAll("button").forEach(b => {
+  b.addEventListener("click", () => { applyDepth(+b.dataset.depth); build(); });
+});
+stepsSel.addEventListener("change", () => {
+  try { localStorage.setItem("micronart-steps", stepsSel.value); } catch (e) {}
+  build();
 });
 
 // ── background mode ───────────────────────────────────────────
@@ -1426,10 +1617,14 @@ const dirSeg  = document.getElementById("dirMode");
 const dirHint = document.getElementById("dirHint");
 
 const DIR_HINT = {
-  rows:  "top to bottom",
-  cols:  "left to right",
-  diag:  "corner to corner",
-  shade: "by character density, on ░ ▒ ▓ █"
+  rows:   "top to bottom",
+  cols:   "left to right",
+  diag:   "corner to corner",
+  adiag:  "the other corner to corner",
+  radial: "from the centre outwards",
+  spiral: "round the centre",
+  wave:   "rows bent by a wave",
+  shade:  "by character density, on ░ ▒ ▓ █"
 };
 
 function applyDirMode(mode) {
@@ -1447,7 +1642,7 @@ dirSeg.querySelectorAll("button").forEach(b => {
 // ── controls ──────────────────────────────────────────────────
 artBox.addEventListener("input", build);
 ["bg", "centerArt", "scanlines", "reverse", "randomChars",
- "grain", "bold", "fade", "halo"].forEach(id => {
+ "grain", "bold", "fade", "halo", "bounce", "glow"].forEach(id => {
   const el = document.getElementById(id);
   el.addEventListener("input", build);
   el.addEventListener("change", build);
@@ -1473,55 +1668,233 @@ document.getElementById("reroll").addEventListener("click", () => {
 
 const pick   = arr => arr[Math.floor(Math.random() * arr.length)];
 const chance = p => Math.random() < p;
+const rnd    = (a, b) => a + Math.random() * (b - a);
 
-function roll() {
-  const on = (id, v) => { document.getElementById(id).checked = v; };
+// ── palette generator ─────────────────────────────────────────
+// Magic invents palettes from colour harmonies rather than from four random
+// colours: four random colours are mud more often than not, a harmony almost
+// never is. Each scheme returns four rrggbb stops for the custom wells.
+function hsl(h, s, l) {
+  h = ((h % 360) + 360) % 360;
+  const k = n => (n + h / 30) % 12;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+  return [f(0), f(8), f(4)].map(v => Math.round(v * 255).toString(16).padStart(2, "0")).join("");
+}
 
-  // One roll in six invents a palette instead of choosing one, so Magic is not
-  // limited to the shipped list.
-  if (chance(0.17)) {
-    wells.forEach(w => {
-      w.value = "#" + Array.from({ length: 3 },
-        () => { const d = Math.floor(Math.random() * 16).toString(16); return d + d; }).join("");
-    });
-    refreshCustom(true);
-  } else {
-    currentPal = pick(Object.keys(PALETTES));
-    setPal(currentPal);
+const SCHEMES = {
+  // neighbouring hues, dark to bright
+  analog() {
+    const h = rnd(0, 360), d = rnd(20, 45) * (chance(0.5) ? 1 : -1);
+    return [0, 1, 2, 3].map(i => hsl(h + d * i, rnd(0.8, 1), 0.38 + 0.13 * i));
+  },
+  // one hue against its opposite
+  duotone() {
+    const h = rnd(0, 360);
+    return [hsl(h, 0.9, 0.35), hsl(h + 15, 0.9, 0.55), hsl(h + 180, 0.9, 0.55), hsl(h + 195, 0.8, 0.78)];
+  },
+  // three hues a third of the wheel apart
+  triad() {
+    const h = rnd(0, 360);
+    return [0, 120, 240, 330].map(d => hsl(h + d, 0.95, 0.55));
+  },
+  // a long sweep round the wheel at full saturation
+  spectrum() {
+    const h = rnd(0, 360), span = rnd(200, 320) * (chance(0.5) ? 1 : -1);
+    return [0, 1, 2, 3].map(i => hsl(h + span * i / 3, 1, 0.55));
+  },
+  // one hue from near black to near white
+  mono() {
+    const h = rnd(0, 360), s = rnd(0.6, 1);
+    return [0.15, 0.4, 0.65, 0.9].map(l => hsl(h, s, l));
+  },
+  // soft and light
+  pastel() {
+    const h = rnd(0, 360), d = rnd(40, 90);
+    return [0, 1, 2, 3].map(i => hsl(h + d * i, rnd(0.6, 0.9), rnd(0.74, 0.86)));
+  },
+  // electric: saturated, climbing to white-hot
+  neon() {
+    const h = rnd(0, 360);
+    return [hsl(h, 1, 0.5), hsl(h + 40, 1, 0.58), hsl(h + 80, 1, 0.65), hsl(h + 110, 1, 0.85)];
+  },
+  // from shadow to light through warming hues
+  dusk() {
+    const h = rnd(0, 360);
+    return [hsl(h, 0.8, 0.18), hsl(h + 40, 0.8, 0.4), hsl(h + 80, 0.9, 0.62), hsl(h + 100, 1, 0.86)];
+  },
+  // the old behaviour: anything at all
+  chaos() {
+    return [0, 1, 2, 3].map(() => Array.from({ length: 3 },
+      () => { const d = Math.floor(Math.random() * 16).toString(16); return d + d; }).join(""));
   }
+};
+
+function usePal(name) { currentPal = name; setPal(name); }
+function useBg(name)  { currentBgPal = name; setBgPal(name); }
+function useGen(scheme) {
+  SCHEMES[scheme]().forEach((c, i) => { wells[i].value = "#" + c; });
+  refreshCustom(true);
+}
+
+// Every effect Magic may touch. Each look switches on its own and leaves the
+// rest off, so nothing lingers from the roll before.
+const FX = ["scanlines", "reverse", "randomChars", "grain", "bold", "fade", "halo", "bounce", "glow"];
+function setFx(list) {
+  FX.forEach(id => { document.getElementById(id).checked = list.includes(id); });
+}
+const maybe = (p, id) => chance(p) ? [id] : [];
+
+// A dark solid background, from the low end of each channel.
+function darkSolid() {
+  return Array.from({ length: 3 }, () => Math.floor(Math.random() * 4).toString(16)).join("");
+}
+
+// ── looks ─────────────────────────────────────────────────────
+// Coin flips per setting give variety but rarely a style: most combinations
+// are noise. A look is a set of choices that belong together, with room to
+// vary inside it. Magic rolls one of these most of the time and a free roll of
+// everything the rest of the time.
+const LOOKS = {
+  crt(blocks) {
+    usePal(pick(["matrix", "amber", "mono", "emerald", "venom", "lime"]));
+    useBg(pick(["dark swamp", "dark coal", "dark char", "dark moss"]));
+    applyBgMode(chance(0.5) ? "ramp" : "none");
+    applyDirMode(blocks && chance(0.5) ? "shade" : "rows");
+    setFx(["scanlines", ...maybe(0.6, "fade"), ...maybe(0.5, "bold"), ...maybe(0.3, "glow")]);
+  },
+  neon() {
+    if (chance(0.35)) useGen("neon");
+    else usePal(pick(["neon", "vice", "cyber", "acid", "ultra", "punk", "alien", "aurora"]));
+    useBg(pick(["dark void", "dark navy", "dark plum", "dark abyss", "dark wine"]));
+    applyBgMode("ramp");
+    applyDirMode(pick(["diag", "adiag", "cols", "spiral"]));
+    setFx(["halo", "glow", ...maybe(0.6, "bold"), ...maybe(0.3, "bounce")]);
+  },
+  poster() {
+    if (chance(0.3)) useGen(pick(["duotone", "triad"]));
+    else usePal(pick(Object.keys(PALETTES).filter(p => p !== "custom" && p !== "mono")));
+    applyBgMode("invert");
+    applyDirMode(pick(["rows", "diag", "adiag", "radial"]));
+    setFx([...maybe(0.5, "bold"), ...maybe(0.4, "bounce"), ...maybe(0.3, "glow")]);
+  },
+  chrome(blocks) {
+    usePal(pick(["steel", "mono", "glacier", "ice", "sapphire"]));
+    if (chance(0.4)) { document.getElementById("bg").value = darkSolid(); applyBgMode("solid"); }
+    else applyBgMode("none");
+    applyDirMode(blocks ? "shade" : pick(["rows", "radial"]));
+    setFx(["bounce", ...maybe(0.6, "glow"), ...maybe(0.5, "bold")]);
+  },
+  rainbow() {
+    if (chance(0.5)) useGen("spectrum"); else usePal("rave");
+    useBg(pick(["dark void", "dark coal", "dark navy"]));
+    applyBgMode(chance(0.6) ? "none" : "ramp");
+    applyDirMode(pick(["diag", "spiral", "wave", "radial", "cols"]));
+    const scatter = chance(0.25);
+    setFx(scatter ? ["randomChars"] : [...maybe(0.35, "bounce"), ...maybe(0.4, "bold")]);
+  },
+  heat() {
+    usePal(pick(["fire", "lava", "gold", "copper", "sunset", "blood"]));
+    useBg(pick(["dark ember", "dark rust", "dark cave", "dark bronze"]));
+    applyBgMode(chance(0.5) ? "ramp" : "none");
+    // reversed, so the hot end sits in the middle of the radial
+    applyDirMode(pick(["radial", "radial", "rows", "wave"]));
+    setFx(["reverse", ...maybe(0.4, "glow"), ...maybe(0.5, "grain"), ...maybe(0.4, "bold")]);
+  },
+  pastel() {
+    if (chance(0.6)) useGen("pastel"); else usePal(pick(["bubblegum", "candy", "aurora"]));
+    applyBgMode("none");
+    applyDirMode(pick(["wave", "diag", "adiag", "spiral"]));
+    setFx([...maybe(0.5, "bounce"), ...maybe(0.3, "bold")]);
+  },
+  vapor() {
+    if (chance(0.4)) useGen(pick(["analog", "dusk"]));
+    else usePal(pick(["vice", "sunrise", "dusk", "candy", "royal", "ultra"]));
+    useBg(pick(["dark plum", "dark wine", "dark void", "dark navy"]));
+    applyBgMode(chance(0.6) ? "ramp" : "none");
+    applyDirMode(pick(["wave", "wave", "rows", "adiag"]));
+    setFx([...maybe(0.5, "scanlines"), ...maybe(0.5, "bounce"), ...maybe(0.4, "halo")]);
+  },
+  monotone(blocks) {
+    useGen("mono");
+    applyBgMode(chance(0.3) ? "invert" : "none");
+    applyDirMode(blocks && chance(0.6) ? "shade" : pick(["radial", "rows", "diag"]));
+    setFx([...maybe(0.5, "glow"), ...maybe(0.4, "bounce"), ...maybe(0.3, "fade")]);
+  },
+  duotone() {
+    useGen("duotone");
+    if (chance(0.5)) { document.getElementById("bg").value = darkSolid(); applyBgMode("solid"); }
+    else applyBgMode("none");
+    applyDirMode(pick(["diag", "adiag", "radial", "cols"]));
+    setFx([...maybe(0.4, "halo"), ...maybe(0.4, "bold"), ...maybe(0.3, "grain")]);
+  },
+  glitch() {
+    if (chance(0.5)) useGen(pick(["chaos", "triad"]));
+    else usePal(pick(["rave", "toxic", "punk", "cyber", "hazard"]));
+    useBg(pick(Object.keys(DARKS)));
+    applyBgMode(pick(["ramp", "invert", "none"]));
+    applyDirMode(pick(["cols", "spiral", "wave"]));
+    setFx(["grain", ...maybe(0.5, "scanlines"), ...maybe(0.4, "randomChars")]);
+  }
+};
+
+// Everything at once, each setting on its own coin.
+function freeRoll(blocks) {
+  if (chance(0.3)) useGen(pick(Object.keys(SCHEMES)));
+  else usePal(pick(Object.keys(PALETTES)));
 
   // Weighted towards the dark set: those are the ones that read well behind
   // bright art, the rest are there for the odd deliberately loud combination.
-  currentBgPal = chance(0.7) ? pick(Object.keys(DARKS)) : pick(Object.keys(PALETTES));
-  setBgPal(currentBgPal);
+  useBg(chance(0.7) ? pick(Object.keys(DARKS)) : pick(Object.keys(PALETTES)));
 
   // The art keeps the bright palette colours; only the background is allowed
   // to be dark, so a solid one is rolled from the low half of each channel.
-  document.getElementById("bg").value = Array.from({ length: 3 },
-    () => Math.floor(Math.random() * 4).toString(16)).join("");
+  document.getElementById("bg").value = darkSolid();
 
   const r = Math.random();
   applyBgMode(r < 0.24 ? "none" : r < 0.5 ? "invert" : r < 0.79 ? "ramp" : "solid");
 
   // Density shading only means anything when the art is actually built from
   // shade characters; on line art it would flatten the whole picture.
-  const dirs = ["rows", "cols", "diag"];
-  if (/[░▒▓█]/.test(artBox.value)) dirs.push("shade", "shade");
+  const dirs = ["rows", "cols", "diag", "adiag", "radial", "spiral", "wave"];
+  if (blocks) dirs.push("shade", "shade");
   applyDirMode(pick(dirs));
 
   // Random colours already scramble the picture, so no second layer of noise
   // on top and no ramp direction left to reverse.
-  const rnd = chance(0.22);
-  on("randomChars", rnd);
-  on("grain",     !rnd && chance(0.35));
-  on("scanlines", !rnd && chance(0.3));
-  on("reverse",   !rnd && chance(0.4));
+  const scatter = chance(0.2);
+  setFx([
+    ...(scatter ? ["randomChars"] : []),
+    ...(!scatter ? maybe(0.3, "grain") : []),
+    ...(!scatter ? maybe(0.25, "scanlines") : []),
+    ...(!scatter ? maybe(0.4, "reverse") : []),
+    ...(!scatter ? maybe(0.3, "bounce") : []),
+    ...maybe(0.45, "bold"),
+    ...maybe(0.25, "fade"),
+    ...maybe(0.3, "glow"),
+    ...(bgMode !== "none" ? maybe(0.4, "halo") : [])
+  ]);
+}
 
-  on("bold", chance(0.45));
-  on("fade", chance(0.3));
-  on("halo", bgMode !== "none" && chance(0.4));
-  bwBtn.setAttribute("aria-pressed", chance(0.1) ? "true" : "false");
+const magicName = document.getElementById("magicName");
+let lastLook = null;
 
+function roll() {
+  const blocks = /[░▒▓█]/.test(artBox.value);
+
+  // Never the same look twice running: a second click should look different.
+  let name = "free roll";
+  if (chance(0.7)) {
+    const names = Object.keys(LOOKS).filter(n => n !== lastLook);
+    name = pick(names);
+    LOOKS[name](blocks);
+  } else {
+    freeRoll(blocks);
+  }
+  lastLook = name;
+  magicName.textContent = "look: " + name;
+
+  bwBtn.setAttribute("aria-pressed", name === "free roll" && chance(0.1) ? "true" : "false");
   seed = Math.floor(Math.random() * 1e9);
 }
 
@@ -1681,32 +2054,34 @@ const recipeBox = document.getElementById("recipe");
 const recipeMsg = document.getElementById("recipeMsg");
 const cb = id => document.getElementById(id);
 
+// Flags, one letter per switch. MA1 knew the first nine; the last two came
+// with MA2.
+const FLAGS = { s: "scanlines", r: "reverse", x: "randomChars", c: "centerArt",
+                g: "grain", b: "bold", f: "fade", h: "halo", p: "bounce", e: "glow" };
+
 function encodeRecipe() {
-  const flags = (cb("scanlines").checked   ? "s" : "")
-              + (cb("reverse").checked     ? "r" : "")
-              + (cb("randomChars").checked ? "x" : "")
-              + (cb("centerArt").checked   ? "c" : "")
-              + (cb("grain").checked       ? "g" : "")
-              + (cb("bold").checked        ? "b" : "")
-              + (cb("fade").checked        ? "f" : "")
-              + (cb("halo").checked        ? "h" : "")
-              + (bwBtn.getAttribute("aria-pressed") === "true" ? "w" : "");
+  let flags = "";
+  for (const [k, id] of Object.entries(FLAGS)) if (cb(id).checked) flags += k;
+  if (bwBtn.getAttribute("aria-pressed") === "true") flags += "w";
   const solid = cb("bg").value.trim().toLowerCase();
   const parts = [
-    "MA1",
+    "MA2",
     currentPal.replace(/ /g, "-"),
     currentBgPal.replace(/ /g, "-"),
     bgMode,
-    /^[0-9a-f]{3}$/.test(solid) ? solid : "000",
+    isHex(solid) ? solid : "000",
     dirMode,
     flags || "0",
     seed.toString(36),
-    Math.round(parseFloat(lhInput.value) * 100)
+    Math.round(parseFloat(lhInput.value) * 100),
+    // 12, or 24 with its step count: 24s16, 24s0 for smooth
+    depth === 24 ? "24s" + stepsSel.value : "12"
   ];
   // The four stops ride along whenever the custom palette is in play, so the
-  // code carries the colours themselves and not just their name.
+  // code carries the colours themselves and not just their name. 12 bit only
+  // ever uses the high nibbles, so it writes three digits a stop.
   if (currentPal === "custom" || currentBgPal === "custom") {
-    parts.push(customStops.join("-"));
+    parts.push((depth === 24 ? customStops : customStops.map(short3)).join("-"));
   }
   return parts.join(".");
 }
@@ -1715,46 +2090,55 @@ function syncRecipe() {
   if (document.activeElement !== recipeBox) recipeBox.value = encodeRecipe();
 }
 
+// Reads MA2 and the older MA1, which has no depth field: MA1 is 12 bit, and
+// its custom stops sit where MA2 keeps the depth.
 function applyRecipe(code) {
   const p = String(code).trim().split(".");
-  if (p.length < 9 || p[0].toUpperCase() !== "MA1") return "not a Micron Artist code";
+  const ver = (p[0] || "").toUpperCase();
+  if (p.length < 9 || (ver !== "MA1" && ver !== "MA2")) return "not a Micron Artist code";
 
   const pal   = p[1].replace(/-/g, " ");
   const bgPal = p[2].replace(/-/g, " ");
   if (!PALETTES[pal])       return "unknown palette: " + pal;
   if (!BG_PALETTES[bgPal])  return "unknown background palette: " + bgPal;
   if (!["none", "solid", "ramp", "invert"].includes(p[3])) return "unknown background mode: " + p[3];
-  if (!["rows", "cols", "diag", "shade"].includes(p[5]))   return "unknown gradient: " + p[5];
+  if (!DIRS.includes(p[5]))  return "unknown gradient: " + p[5];
 
   const s = parseInt(p[7], 36);
   const lh = parseInt(p[8], 10);
   if (!isFinite(s) || !isFinite(lh)) return "the seed or the line spacing is not a number";
 
-  // Custom stops, when the code carries them, have to be in place before the
-  // palette is selected: the ramp is rebuilt from them.
-  if (p[9]) {
-    const stops = p[9].split("-");
-    if (stops.length !== 4 || stops.some(c => !/^[0-9a-f]{3}$/.test(c)))
+  let d = 12, steps = null, stopsField = p[9];
+  if (ver === "MA2") {
+    const m = /^(12|24)(?:s(\d+))?$/.exec(p[9] || "");
+    if (!m) return "unknown colour depth: " + p[9];
+    d = +m[1];
+    if (m[2] !== undefined) steps = m[2];
+    stopsField = p[10];
+  }
+  if (steps !== null && ![...stepsSel.options].some(o => o.value === steps))
+    return "unknown step count: " + steps;
+
+  // Depth first, then the custom stops, then the palette: the custom ramp is
+  // rebuilt from the stops at the chosen depth.
+  if (steps !== null) stepsSel.value = steps;
+  applyDepth(d);
+  if (stopsField) {
+    const stops = stopsField.split("-");
+    if (stops.length !== 4 || stops.some(c => !isHex(c)))
       return "the custom colours are malformed";
-    stops.forEach((c, i) => { wells[i].value = to6(c); });
+    stops.forEach((c, i) => { wells[i].value = to6(c.toLowerCase()); });
     refreshCustom(false);
   }
 
   currentPal = pal;     setPal(pal);
   currentBgPal = bgPal; setBgPal(bgPal);
-  if (/^[0-9a-f]{3}$/.test(p[4])) cb("bg").value = p[4];
+  if (isHex(p[4])) cb("bg").value = p[4];
   applyBgMode(p[3]);
   applyDirMode(p[5]);
 
   const flags = p[6] === "0" ? "" : p[6];
-  cb("scanlines").checked   = flags.includes("s");
-  cb("reverse").checked     = flags.includes("r");
-  cb("randomChars").checked = flags.includes("x");
-  cb("centerArt").checked   = flags.includes("c");
-  cb("grain").checked       = flags.includes("g");
-  cb("bold").checked        = flags.includes("b");
-  cb("fade").checked        = flags.includes("f");
-  cb("halo").checked        = flags.includes("h");
+  for (const [k, id] of Object.entries(FLAGS)) cb(id).checked = flags.includes(k);
   bwBtn.setAttribute("aria-pressed", flags.includes("w") ? "true" : "false");
 
   seed = s;
@@ -1896,17 +2280,20 @@ try {
   const savedDir   = localStorage.getItem("micronart-dir");
   const savedStops = localStorage.getItem("micronart-stops");
   const savedFont  = localStorage.getItem("micronart-font");
+  const savedDepth = localStorage.getItem("micronart-depth");
+  const savedSteps = localStorage.getItem("micronart-steps");
   if (savedFont && ART_FONTS[savedFont]) fontSel.value = savedFont;
   savedMode        = localStorage.getItem("micronart-bgmode") || "none";
-  if (["rows", "cols", "diag", "shade"].includes(savedDir)) dirMode = savedDir;
+  if (DIRS.includes(savedDir)) dirMode = savedDir;
+  if ([...stepsSel.options].some(o => o.value === savedSteps)) stepsSel.value = savedSteps;
 
+  // The wells first: applyDepth rebuilds the custom ramp from them, and stores
+  // them, so it would otherwise overwrite the saved stops with the defaults.
   if (savedStops) {
     const st = savedStops.split("-");
-    if (st.length === 4 && st.every(c => /^[0-9a-f]{3}$/.test(c))) {
-      st.forEach((c, i) => { wells[i].value = to6(c); });
-      refreshCustom(false);
-    }
+    if (st.length === 4 && st.every(isHex)) st.forEach((c, i) => { wells[i].value = to6(c); });
   }
+  depth = savedDepth === "24" ? 24 : 12;
 
   if (savedArt) artBox.value = savedArt;
   if (savedPal && PALETTES[savedPal])        { currentPal   = savedPal;   setPal(savedPal); }
@@ -1916,6 +2303,7 @@ try {
 
 if (!artBox.value) artBox.value = SAMPLE;
 
+applyDepth(depth);
 applyBgMode(["none", "solid", "ramp", "invert"].includes(savedMode) ? savedMode : "none");
 applyDirMode(dirMode);
 applyFont();

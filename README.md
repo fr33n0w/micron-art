@@ -21,8 +21,9 @@ GitHub Pages serves it as is.
   24 bit pages small
 - gradients by row, column, both diagonals, radial, spiral, wave, or by
   character density (`░▒▓█`)
-- 34 palettes for the art, plus 16 near-black ones reserved for backgrounds, all
-  shown as colour strips so you pick by eye
+- 62 palettes for the art, plus 32 near-black ones reserved for backgrounds, all
+  shown as colour strips so you pick by eye; those marked `24` are written at
+  full 24 bit and round to the nearest colour at 12 bit
 - a custom palette: four colour wells, interpolated into the same eight-step
   ramp the built-in palettes use, so every effect works on it unchanged
 - backgrounds: none, one solid colour, a ramp, or inverted (the ramp paints the
@@ -31,9 +32,9 @@ GitHub Pages serves it as is.
 - effects: scanlines, reversed ramp, random colour per character, grain, bold,
   edge fade, bounce (ramp out and back), edge glow, and a B/W switch that drops
   everything to grey by luminance
-- Magic rolls everything at once, usually as one of eleven named looks (crt,
-  neon, poster, chrome, rainbow, heat, pastel, vapor, monotone, duotone,
-  glitch), often inventing a palette from a colour harmony; Shuffle draws a new
+- Magic rolls everything at once, usually as one of thirteen named looks (crt,
+  neon, poster, chrome, rainbow, heat, pastel, vapor, monotone, duotone, earth,
+  retro, glitch), often inventing a palette from a colour harmony; Shuffle draws a new
   set of random colours
 - art transforms: Mirror, Flip, Frame (12 border styles), Shade (steps every
   block one level denser), Trim, and Undo
